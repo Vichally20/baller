@@ -1,0 +1,94 @@
+{
+  "id": "first_days",
+  "title": "First Days",
+  "when": { "pathway": ["offers"] },
+  "scenarios": [
+    {
+      "id": "arrival",
+      "title": "Arrival",
+      "text": "A week ago you were playing in {city}. Now there's a {club} training kit folded on your bed, with {shirt} printed across the back.\n\nOn your first morning, {manager} meets you in the corridor, shakes your hand once and gets straight to it. \"We see you as a {position}. Any questions?\"",
+      "choices": [
+        {
+          "text": "\"No questions. I'm ready.\"",
+          "outcomes": [
+            {
+              "text": "A short nod. \"Good. Ready is what I need.\" The manager is already walking away, but you catch the hint of a smile.",
+              "effects": { "coach": 10, "morale": 5 }
+            }
+          ]
+        },
+        {
+          "text": "Ask how long until the first team",
+          "outcomes": [
+            {
+              "weight": 2,
+              "text": "\"Ambition. Good. Train like it every day and the door stays open.\"",
+              "effects": { "coach": 5, "morale": 5 }
+            },
+            {
+              "weight": 1,
+              "text": "\"You've been here five minutes, {first}.\" The handshake was warmer than this.",
+              "effects": { "coach": -5 }
+            }
+          ]
+        },
+        {
+          "text": "Ask for a signing advance to send home",
+          "outcomes": [
+            {
+              "text": "The club secretary sorts it out without a fuss. Your family calls that night, proud and a little tearful.",
+              "effects": { "money": 150, "morale": 10 }
+            },
+            {
+              "text": "\"Wages are paid monthly. Same as everyone.\" Fair enough, but it stings.",
+              "effects": { "morale": -5 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the_dressing_room",
+      "title": "The Dressing Room",
+      "text": "First training session. The dressing room goes quiet when you walk in. Somewhere in here is the player whose place you might take, and everyone knows it.\n\nA senior player throws you a mesh bag full of balls. \"New signing carries these. Tradition.\"",
+      "choices": [
+        {
+          "text": "Carry them with a smile",
+          "outcomes": [
+            {
+              "text": "By the end of the session you've carried the balls, the cones and the water bottles. Someone saves you a seat at lunch.",
+              "effects": { "teammates": 10 }
+            }
+          ]
+        },
+        {
+          "text": "\"Tradition says the best player doesn't.\"",
+          "outcomes": [
+            {
+              "weight": 1,
+              "text": "A beat of silence, then the whole room laughs. \"Cocky. We'll see.\" You still carry the balls.",
+              "effects": { "teammates": 5, "morale": 5 }
+            },
+            {
+              "weight": 2,
+              "text": "Nobody laughs. The bag lands at your feet. For the rest of the week, passes reach you a little late.",
+              "effects": { "teammates": -10 }
+            }
+          ]
+        },
+        {
+          "text": "Carry them, then stay late to practise",
+          "outcomes": [
+            {
+              "text": "When everyone else has gone, you're still out there with the bag of balls. The staff notice. So does the senior player.",
+              "effects": { "coach": 10, "teammates": 5, "morale": -5 }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "matches": [
+    { "title": "First appearance", "opponent": "A friendly XI" }
+  ]
+}

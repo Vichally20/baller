@@ -1,0 +1,95 @@
+{
+  "id": "trial",
+  "title": "The Trial",
+  "when": { "pathway": ["trials"] },
+  "verdict": true,
+  "scenarios": [
+    {
+      "id": "the_scout",
+      "title": "The Scout",
+      "text": "Saturday evening in {city}. The pitch near your home is more dust than grass, and the goals are two piles of school bags. You've just slipped the ball through the legs of the biggest kid on the street when you notice a man in a faded tracksuit by the fence, writing in a small notebook.\n\nAfter the game he waves you over. \"You're {first}, yes? Your friends won't stop shouting your name. I scout for {club}. Our trial is on Monday, and I want you there. Interested?\"",
+      "choices": [
+        {
+          "text": "\"Yes. I'll be there.\"",
+          "outcomes": [
+            {
+              "text": "He tears a page from the notebook and writes an address. \"Eight o'clock. Don't be late, and don't be shy.\" You read it ten times on the walk home.",
+              "effects": { "morale": 10, "coach": 5 }
+            }
+          ]
+        },
+        {
+          "text": "\"Maybe. What's in it for me?\"",
+          "outcomes": [
+            {
+              "weight": 2,
+              "text": "He laughs. \"Confidence. Good. Bring it on Monday, you'll need it.\" He hands you a card with the {club} crest on it.",
+              "effects": { "morale": 5 }
+            },
+            {
+              "weight": 1,
+              "text": "His smile fades. \"Plenty of kids want this, {first}.\" He hands you the card anyway, but he won't forget the attitude.",
+              "effects": { "morale": 5, "coach": -10 }
+            }
+          ]
+        },
+        {
+          "text": "\"Can my best friend trial too?\"",
+          "outcomes": [
+            {
+              "text": "He watches your friend juggle for a minute, then shrugs. \"Bring them. Two trialists, one bus fare.\" Your friend hasn't stopped grinning since.",
+              "effects": { "teammates": 10, "morale": 5 }
+            },
+            {
+              "text": "He shakes his head. \"Just you.\" Your friend says it's fine. It doesn't sound fine.",
+              "effects": { "teammates": -5, "morale": -5 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "training_ground",
+      "title": "The Training Ground",
+      "text": "Monday. The {club} training ground is nothing like home: real grass, real nets, and forty other hopefuls stretching in silence. A coach with a clipboard blows his whistle. \"Drills first. Then we play. Impress me.\"\n\nYour trainers are splitting at the toe. The kid next to you notices and unzips a bag. \"Spare boots. Forty. They're good.\"",
+      "choices": [
+        {
+          "text": "Buy the boots (40)",
+          "outcomes": [
+            {
+              "text": "They're half a size too big, but the studs bite into the grass. You feel taller already.",
+              "effects": { "money": -40, "morale": 5, "addItems": ["second_hand_boots"] }
+            }
+          ]
+        },
+        {
+          "text": "Keep your trainers. It's not the shoes.",
+          "outcomes": [
+            {
+              "weight": 2,
+              "text": "First sprint drill, your feet go from under you. A few of the others laugh. The coach writes something down.",
+              "effects": { "morale": -10 }
+            },
+            {
+              "weight": 1,
+              "text": "You slip, recover, and keep going. You run every drill like it's the last one. The coach notices the kid in trainers who never stops.",
+              "effects": { "coach": 10, "morale": 5 }
+            }
+          ]
+        },
+        {
+          "text": "Introduce yourself to the coach",
+          "outcomes": [
+            {
+              "text": "He looks at you, then at your trainers. \"Names don't play, {first}. Show me out there.\" A few of the others roll their eyes, but at least he'll remember you.",
+              "effects": { "coach": 5, "teammates": -5 }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "matches": [
+    { "title": "Trial match", "opponent": "The other trialists" }
+  ]
+}
