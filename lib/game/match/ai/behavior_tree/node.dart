@@ -12,3 +12,4 @@ abstract class BTNode<T> {
   /// Evaluates this node against the current [context].
   NodeStatus tick(T context);
 }
+

@@ -129,3 +129,4 @@ class TacticalState {
     lastAdjustmentReason = reason;
   }
 }
+

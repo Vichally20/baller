@@ -34,6 +34,7 @@ class MatchScreen extends StatefulWidget {
 class _MatchScreenState extends State<MatchScreen> {
   late final MatchSim _sim = MatchSim(
     shirtName: widget.player.identity.shirtName,
+    user: widget.player,
     random: widget.random,
   );
   final _scroll = ScrollController();
