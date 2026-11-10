@@ -1,6 +1,9 @@
 import 'package:baller/data/career_store.dart';
 import 'package:baller/data/world_repository.dart';
+import 'package:baller/game/career/calendar.dart';
+import 'package:baller/game/career/contracts.dart';
 import 'package:baller/game/career/pathway.dart';
+import 'package:baller/game/models/placement.dart';
 import 'package:baller/game/career/position_decision.dart';
 import 'package:baller/game/models/player.dart';
 import 'package:baller/ui/screens/career_screen.dart';
@@ -122,6 +125,10 @@ class _SigningScreenState extends State<SigningScreen> {
             ),
           ),
           const SizedBox(height: 14),
+          if (_club.placement.contract case final contract?) ...[
+            _ContractCard(contract: contract),
+            const SizedBox(height: 14),
+          ],
           _DecisionCard(decision: _club.decision, player: widget.player),
           const SizedBox(height: 14),
           ManagerCard(manager: club.manager),
@@ -131,6 +138,53 @@ class _SigningScreenState extends State<SigningScreen> {
         label: verdict ? 'Sign the contract' : 'Start career',
         trailingArrow: true,
         onPressed: _saving ? null : _continue,
+      ),
+    );
+  }
+}
+
+/// The contract on the table: wage and length.
+class _ContractCard extends StatelessWidget {
+  const _ContractCard({required this.contract});
+
+  final Contract contract;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget fact(String caps, String value) => Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(caps, style: AppText.caps()),
+          const SizedBox(height: 4),
+          Text(value, style: AppText.manrope(20, weight: 600)),
+        ],
+      ),
+    );
+    return SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('THE CONTRACT', style: AppText.caps()),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              fact('A WEEK', formatWage(contract.weeklyWage)),
+              fact('A MONTH', formatWage(contract.monthlyWage)),
+              fact(
+                'LENGTH',
+                '${contract.years} '
+                    '${contract.years == 1 ? 'year' : 'years'}',
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Runs until the end of the ${seasonLabel(contract.endSeason)} '
+            'season. Wages are paid on the last day of each month.',
+            style: AppText.inter(13, height: 1.4, color: AppColors.muted),
+          ),
+        ],
       ),
     );
   }

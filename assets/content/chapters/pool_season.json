@@ -1,0 +1,294 @@
+{
+  "id": "season_pool",
+  "title": "Matchweek",
+  "pool": true,
+  "scenarios": [
+    {
+      "id": "pool_analysis",
+      "title": "Video Session",
+      "text": "The analyst catches you on your way out of training, laptop under one arm. \"Twenty minutes on {opponent}? Their full-back pushes up and leaves a gap. I can show you exactly where.\"",
+      "choices": [
+        {
+          "text": "Stay and watch",
+          "outcomes": [
+            {
+              "text": "By the end you could draw their back line from memory. Word gets back to {manager} that you stayed.",
+              "effects": { "coach": 5, "morale": 5 }
+            }
+          ]
+        },
+        {
+          "text": "\"Send me the clips. I'll watch at home.\"",
+          "outcomes": [
+            {
+              "weight": 2,
+              "text": "You watch them on the bus, twice. Fair enough.",
+              "effects": { "morale": 5 }
+            },
+            {
+              "weight": 1,
+              "text": "The clips sit unopened on your phone all week.",
+              "effects": { "coach": -5 }
+            }
+          ]
+        },
+        {
+          "text": "Bring a teammate along",
+          "outcomes": [
+            {
+              "text": "Two of you, one laptop, too many jokes, but you both leave knowing the plan.",
+              "effects": { "teammates": 10 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pool_extra_shift",
+      "title": "Extra Shift",
+      "text": "Training's over. Everyone heads for the showers, but the pitch is still lit and there's a bag of balls by the goal.",
+      "choices": [
+        {
+          "text": "Stay for finishing practice",
+          "outcomes": [
+            {
+              "weight": 3,
+              "text": "Fifty shots, left foot then right. The last ten all go in.",
+              "effects": { "morale": 10, "coach": 5 }
+            },
+            {
+              "weight": 1,
+              "text": "Your legs are heavy the next morning. The fitness coach is not impressed.",
+              "effects": { "coach": -5, "morale": -5 }
+            }
+          ]
+        },
+        {
+          "text": "Rest. The match matters more.",
+          "outcomes": [
+            {
+              "text": "An early night. You wake up feeling sharp.",
+              "effects": { "morale": 5 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pool_group_chat",
+      "title": "The Group Chat",
+      "text": "Your phone keeps buzzing. Half the squad is planning a night out, two days before {opponent}. \"You coming, {first}?\"",
+      "choices": [
+        {
+          "text": "Go, but leave early",
+          "outcomes": [
+            {
+              "weight": 2,
+              "text": "One drink, a lot of laughing, home by ten. The lads respect it.",
+              "effects": { "teammates": 10 }
+            },
+            {
+              "weight": 1,
+              "text": "Someone posts a photo. {manager} sees it. Nobody gets dropped, but there's a look at training.",
+              "effects": { "teammates": 5, "coach": -10 }
+            }
+          ]
+        },
+        {
+          "text": "\"Not this week.\"",
+          "outcomes": [
+            {
+              "text": "A few eye-roll emojis. You sleep well.",
+              "effects": { "teammates": -5, "morale": 5 }
+            }
+          ]
+        },
+        {
+          "text": "Suggest a team dinner instead",
+          "outcomes": [
+            {
+              "text": "It catches on. Twelve of you squeeze into a small restaurant near the ground.",
+              "effects": { "teammates": 10, "money": -20 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pool_reporter",
+      "title": "A Few Questions",
+      "text": "A reporter from the local paper is waiting by the car park. \"Quick one, {first}. What do you make of {opponent}?\"",
+      "choices": [
+        {
+          "text": "\"Good side. We respect them.\"",
+          "outcomes": [
+            {
+              "text": "Boring, but safe. The club's media officer gives you a thumbs up.",
+              "effects": { "coach": 5 }
+            }
+          ]
+        },
+        {
+          "text": "\"We'll beat them.\"",
+          "outcomes": [
+            {
+              "weight": 1,
+              "text": "It makes the back page. The dressing room loves it.",
+              "effects": { "teammates": 5, "morale": 10 }
+            },
+            {
+              "weight": 1,
+              "text": "It ends up pinned to their dressing room wall. {manager} asks you to keep quiet next time.",
+              "effects": { "coach": -10, "morale": 5 }
+            }
+          ]
+        },
+        {
+          "text": "Smile and keep walking",
+          "outcomes": [
+            {
+              "text": "No story, no trouble.",
+              "effects": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pool_boot_deal",
+      "title": "A Small Deal",
+      "text": "A small boot brand messages you. They'll pay 60 for one post wearing their new pair. The boots look a bit cheap.",
+      "choices": [
+        {
+          "text": "Take the deal",
+          "outcomes": [
+            {
+              "weight": 3,
+              "text": "One photo, one caption, 60 in your account.",
+              "effects": { "money": 60 }
+            },
+            {
+              "weight": 1,
+              "text": "The teammates won't stop calling you \"the model\" all week.",
+              "effects": { "money": 60, "teammates": -5 }
+            }
+          ]
+        },
+        {
+          "text": "Say no",
+          "outcomes": [
+            {
+              "text": "You'd rather your football did the talking.",
+              "effects": { "morale": 5 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pool_call_home",
+      "title": "A Call From Home",
+      "text": "It's your mum. Everyone back in {city} is following the results, and your little cousin wants a shirt with {shirt} on the back.",
+      "choices": [
+        {
+          "text": "Send a signed shirt (30)",
+          "outcomes": [
+            {
+              "text": "A photo arrives a week later: your cousin in the shirt, grinning, three sizes too big.",
+              "effects": { "money": -30, "morale": 10 }
+            }
+          ]
+        },
+        {
+          "text": "Talk for an hour",
+          "outcomes": [
+            {
+              "text": "You hang up feeling lighter than you have in weeks.",
+              "effects": { "morale": 10 }
+            }
+          ]
+        },
+        {
+          "text": "Keep it short, you're tired",
+          "outcomes": [
+            {
+              "text": "You feel a little guilty all evening.",
+              "effects": { "morale": -5 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pool_hamstring",
+      "title": "A Tight Hamstring",
+      "text": "Late in training, something pulls at the back of your thigh. It's probably nothing. Probably.",
+      "choices": [
+        {
+          "text": "Tell the physio",
+          "outcomes": [
+            {
+              "weight": 3,
+              "text": "Just tightness. A massage and some stretches, and you're cleared for {opponent}.",
+              "effects": { "coach": 5 }
+            },
+            {
+              "weight": 1,
+              "text": "The physio wants you to rest a day. You hate it, but it's the right call.",
+              "effects": { "morale": -5, "coach": 5 }
+            }
+          ]
+        },
+        {
+          "text": "Say nothing and play on",
+          "outcomes": [
+            {
+              "weight": 2,
+              "text": "It eases off by the morning. You got away with it.",
+              "effects": {}
+            },
+            {
+              "weight": 1,
+              "text": "It's worse the next day, and the staff work out you hid it. {manager} is not pleased.",
+              "effects": { "coach": -10, "morale": -5 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pool_senior_word",
+      "title": "A Word From the Captain",
+      "text": "The captain sits down next to you in the canteen. \"You've got something, {first}. But you drift out of games. Want some advice?\"",
+      "choices": [
+        {
+          "text": "\"Please.\"",
+          "outcomes": [
+            {
+              "text": "Twenty minutes on movement, talking and when to rest on the ball. You write it all down later.",
+              "effects": { "teammates": 10, "morale": 5 }
+            }
+          ]
+        },
+        {
+          "text": "\"I'm fine, thanks.\"",
+          "outcomes": [
+            {
+              "text": "A shrug. \"Suit yourself.\" The captain doesn't offer again.",
+              "effects": { "teammates": -5 }
+            }
+          ]
+        },
+        {
+          "text": "Ask about {opponent} instead",
+          "outcomes": [
+            {
+              "text": "\"Their number six is slow on the turn. Run at him.\" Noted.",
+              "effects": { "teammates": 5, "morale": 5 }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

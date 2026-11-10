@@ -161,3 +161,40 @@ Each manager has a name, age, philosophy, favourite formation, youth trust (1–
 1. **Creation flow** (built): country choice with benefits, position wish, talent tier, position ratings, scout report.
 2. **World** (built): league, club and manager generation (seeded per save, `lib/game/world/`), player values, league and club screens, a world card on the hub. A naming pattern appears at most 3 times per division.
 3. **Pathways** (built): offers and trials driven by tier, country, age and fit (pathway and signing screens, a club card on the hub); the manager decides the position; chapter conditions (`when`) and a trial `verdict` in the story format; a "First Days" chapter for players with offers.
+4. **Season mode** (built): once the written story runs out, a signed player plays their club's league season. Fixtures are a 38-round double round robin among the 20 clubs in the division, shuffled per season. Each round is 2 scenes from pool chapters, then the line-ups and the match. Other games are simulated from the squads' average ratings (Poisson goals, about 2.5 a game, with home advantage). The table shows the promotion and relegation zones, but promotion and relegation aren't applied yet. Academy players play the same clubs' youth sides in a U18 league. When the season ends, the player starts the next one in the same division. The save keeps only the season number, the player's results and the scenes played this round.
+5. **Stronger leagues** (built, 2026-11-10): club players get a division boost on top of the generated rating and value.
+
+   | Division | Value | Rating |
+   |---|---|---|
+   | 1 | +€15m | +5 |
+   | 2 | +€5m | +3 |
+   | 3 | +€1m | +1 |
+
+   The value part is multiplied by the league's money, so the top five leagues get more than the base (England ×1.6, Spain ×1.3, Germany and Italy ×1.2, France ×1.1) and Brazil, Argentina and Japan less (×0.6–0.7). Once signed, the player's own value gets the same bonus for their club's division (double with an Innate talent). Special players get double: anyone with an Innate talent, and each club's best outfield player. Their stats are generated from the boosted rating, so they play better as well as costing more. England's Division 1 now averages about rating 74 and €20m, up from 68 and €1.5m.
+7. **More goals** (built, 2026-11-10; target 2.5–3 a match):
+   - **Build-up pays off:** each successful Run, Dribble or Pass in an attack moves the ball one zone closer to goal for the next shot.
+   - **Between your chances the rest of the team plays:** a pass or dribble that comes off becomes a shot from inside the box 50% of the time for evenly matched elevens (±4% per rating point of difference, between 15% and 80%).
+   - **Sharper shooting:** the on-target factor went from 0.65 to 0.8, and keepers save at 0.65 × rating instead of 0.75.
+   - **Result:** about 2.4–2.6 goals a match with sensible play (build up, then shoot), and 1.5–2.0 with random moves.
+8. **Life off the pitch** (built, 2026-11-10; numbers provisional, in `lib/game/career/contracts.dart` and `life_actions.dart`):
+   - **Calendar:** season 1 is 2026/27. Pre-season starts on 1 July, and league rounds are played on Saturdays from the first Saturday on or after 8 August. Wages are paid on the last day of every month, as each matchday passes and over the summer.
+   - **Contracts** (shown on offers and at signing, saved with the club):
+     - **Under-18s** at academies or after a trial get a scholarship until 18: (€120 + €60 per club star) a week, times the league's money factor.
+     - **Everyone else** earns a share of their market value a year: 10% in Division 1, 8% in Division 2 and 6% in Division 3, with a minimum of €300 a week.
+     - **Length:** 4 years in Division 1, 3 below, and 2 after a trial.
+   - **Agent** (hire or dismiss on the player screen): +25% on every new contract, a monthly sponsor worth 0.2% of market value (between €200 and €50,000), and offers from abroad, for 15% of wages.
+   - **Manager:** one talk a week (each league round, or each story event).
+     - **Feedback:** +5 relationship 3 times in 4, otherwise −5.
+     - **Requests** need a relationship of 70 or more:
+       - **Play my position:** granted 3 times in 5, after which the manager plays you there; −5 if refused.
+       - **Raise:** +10–20% on your wage; −10 if refused.
+     - **Find a new club:** up to 3 clubs near your level make offers (only from your own country without an agent). Agreeing a move costs 10 relationship, and the move happens when the season ends.
+   - **Results:** every round's scores are shown on the season screen.
+   - **Matches in progress** are saved after every move: the seed plus your moves rebuild the same match.
+6. **Player growth** (built, numbers provisional):
+   - **In matches:** every successful move (a goal, keeping the ball or winning it) earns 10 XP for the stat it uses. Shoot trains Shot, Run trains Pace, Pass trains Pass, Dribble trains Dribble, defending moves train Defence, and headers and clearances train Physical.
+   - **Levelling up:** a stat goes up by 1 when its XP reaches (stat − 20) × 10, so 350 at 55 and 550 at 75.
+   - **Learning rate:** ×1.5 up to age 19, ×1.25 to 23, ×1 to 27, ×0.6 to 30, ×0.3 after that.
+   - **Spain's Technical schooling:** ×1.5 for Pass and Dribble.
+   - **Each summer the player ages a year:** up to 21, +1 to every skill. From 22 to 29, no change. From 30 to 32, −1 Pace and −1 Physical. From 33, −2 Pace, −2 Physical, −1 Shot and −1 Dribble.
+   - **Rough pace:** a young player gains about 8–10 points a season from matches, plus 6 in the summer.

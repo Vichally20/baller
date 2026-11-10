@@ -122,29 +122,32 @@ void main() {
       ),
     );
 
-    test('elite shooter in opponent box produces goals and saves, not wide misses', () {
-      var goals = 0;
-      var saves = 0;
-      var misses = 0;
-      const trials = 100;
+    test(
+      'elite shooter in opponent box produces goals and saves, not wide misses',
+      () {
+        var goals = 0;
+        var saves = 0;
+        var misses = 0;
+        const trials = 100;
 
-      for (var i = 0; i < trials; i++) {
-        final outcome = StatContestResolver.resolveShot(
-          shooter: eliteShooter,
-          goalkeeper: averageGk,
-          zone: PitchZone.opponentBox,
-          attackingSide: Side.home,
-          momentum: MatchMomentum(),
-          rng: Random(i),
-        );
-        if (outcome.isGoal) goals++;
-        if (outcome.result == ContestResult.saved) saves++;
-        if (outcome.result == ContestResult.miss) misses++;
-      }
+        for (var i = 0; i < trials; i++) {
+          final outcome = StatContestResolver.resolveShot(
+            shooter: eliteShooter,
+            goalkeeper: averageGk,
+            zone: PitchZone.opponentBox,
+            attackingSide: Side.home,
+            momentum: MatchMomentum(),
+            rng: Random(i),
+          );
+          if (outcome.isGoal) goals++;
+          if (outcome.result == ContestResult.saved) saves++;
+          if (outcome.result == ContestResult.miss) misses++;
+        }
 
-      expect(goals, greaterThan(25));
-      expect(goals + saves, greaterThan(misses));
-    });
+        expect(goals, greaterThan(25));
+        expect(goals + saves, greaterThan(misses));
+      },
+    );
   });
 
   group('MatchSim with real User Player and Club integration', () {
@@ -163,6 +166,10 @@ void main() {
 
       // Play a full game
       while (!sim.isOver) {
+        if (sim.isHalfTime) {
+          sim.startSecondHalf();
+          continue;
+        }
         final action = sim.pad.values.first;
         sim.play(action);
       }

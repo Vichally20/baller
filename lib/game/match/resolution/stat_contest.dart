@@ -4,6 +4,7 @@ import 'package:baller/game/match/ai/utility_ai/pitch_zone.dart';
 import 'package:baller/game/match/match_engine.dart';
 import 'package:baller/game/match/resolution/contest_outcome.dart';
 import 'package:baller/game/match/resolution/momentum.dart';
+import 'package:baller/game/match/resolution/talent_resolver.dart';
 import 'package:baller/game/world/world_models.dart';
 
 /// Stat-based probability resolution for all in-match actions.
@@ -22,7 +23,8 @@ class StatContestResolver {
     double momentumMultiplier = 1.0,
     required Random rng,
   }) {
-    final effectiveAttack = (attackStat * (1.0 - (attackFatigue * 0.30))) * momentumMultiplier;
+    final effectiveAttack =
+        (attackStat * (1.0 - (attackFatigue * 0.30))) * momentumMultiplier;
     final effectiveDefend = defendStat * (1.0 - (defendFatigue * 0.30));
 
     final diff = effectiveAttack - effectiveDefend;
@@ -30,6 +32,13 @@ class StatContestResolver {
 
     return rng.nextDouble() < probability;
   }
+
+  /// Share of a shot's power that ends up on target (was 0.65).
+  static const double onTargetFactor = 0.8;
+
+  /// A keeper's chance to save a shot on target, per rating point (was
+  /// 0.75: a 70-rated keeper saved 52%; now 45%).
+  static const double saveFactor = 0.65;
 
   /// Resolves a shot attempt on goal.
   static ContestOutcome resolveShot({
@@ -42,20 +51,62 @@ class StatContestResolver {
     double fatigue = 0.0,
     bool isUser = false,
   }) {
-    final zoneMult = zone.shotViabilityMultiplier;
-    final effectiveShot = shooter.attributes.shot * (1.0 - (fatigue * 0.30));
+    // Check talent activation for shooter
+    final talentTrigger = TalentResolver.checkTalents(
+      TalentActivationContext(
+        actor: shooter,
+        action: MatchAction.shoot,
+        zone: zone,
+        goalkeeper: goalkeeper,
+        defender: goalkeeper,
+        momentum: momentum,
+        rng: rng,
+      ),
+    );
+
+    if (talentTrigger?.automaticGoal == true) {
+      momentum.onGoal(attackingSide);
+      return ContestOutcome(
+        result: ContestResult.goal,
+        text:
+            '${talentTrigger!.announcement} ${shooter.name} slots it into the open net! GOAL!',
+        nextState: PlayState.defend,
+        scoringSide: attackingSide,
+        actor: shooter,
+        isUserMove: isUser,
+        talentName: talentTrigger.talent.name,
+      );
+    }
+
+    final zoneMult = talentTrigger?.bypassDefence == true
+        ? 1.0
+        : zone.shotViabilityMultiplier;
+    final baseShot =
+        talentTrigger?.boostedAttackStat ?? shooter.attributes.shot;
+    final effectiveShot = baseShot * (1.0 - (fatigue * 0.30));
     final composureBonus = (shooter.attributes.composure / 100.0) * 10.0;
-    final shotPower = (effectiveShot + composureBonus) * zoneMult * momentum.multiplierFor(attackingSide);
+    final shotPower =
+        (effectiveShot + composureBonus) *
+        zoneMult *
+        momentum.multiplierFor(attackingSide);
 
     // Goalkeeper saving capability
-    final gkSaveRating = goalkeeper.rating * 0.75;
+    final gkSaveRating = talentTrigger?.bypassGoalkeeper == true
+        ? 10.0
+        : (talentTrigger?.suppressedDefendStat?.toDouble() ??
+              (goalkeeper.rating * saveFactor));
 
     final roll = rng.nextDouble() * 100.0;
 
     // Defending side is the opposite
     final defendingSide = attackingSide == Side.home ? Side.away : Side.home;
 
-    if (roll < shotPower * 0.65) {
+    final prefix = talentTrigger != null
+        ? '${talentTrigger.announcement} '
+        : '';
+
+    if (roll < shotPower * onTargetFactor ||
+        talentTrigger?.bypassGoalkeeper == true) {
       // Clean strike on target! GK gets a save roll
       final gkRoll = rng.nextDouble() * 100.0;
       if (gkRoll > gkSaveRating) {
@@ -63,40 +114,44 @@ class StatContestResolver {
         momentum.onGoal(attackingSide);
         return ContestOutcome(
           result: ContestResult.goal,
-          text: '${shooter.name} lets fly… GOAL!',
+          text: '$prefix${shooter.name} lets fly… GOAL!',
           nextState: PlayState.defend,
           scoringSide: attackingSide,
           actor: shooter,
           isUserMove: isUser,
+          talentName: talentTrigger?.talent.name,
         );
       } else {
         // Tipped round the post / saved
         momentum.onSave(defendingSide);
         return ContestOutcome(
           result: ContestResult.saved,
-          text: 'Tipped round the post by ${goalkeeper.name}. Corner.',
+          text: '${prefix}Tipped round the post by ${goalkeeper.name}. Corner.',
           nextState: PlayState.cornerFor,
           actor: shooter,
           isUserMove: isUser,
+          talentName: talentTrigger?.talent.name,
         );
       }
     } else if (roll < shotPower * 0.90) {
       // Blocked by defender or deflected
       return ContestOutcome(
         result: ContestResult.blocked,
-        text: 'The shot is blocked by a defender. Corner.',
+        text: '${prefix}The shot is blocked by a defender. Corner.',
         nextState: PlayState.cornerFor,
         actor: shooter,
         isUserMove: isUser,
+        talentName: talentTrigger?.talent.name,
       );
     } else {
       // Off target
       return ContestOutcome(
         result: ContestResult.miss,
-        text: 'Wide. Goal kick.',
+        text: '${prefix}Wide. Goal kick.',
         nextState: PlayState.defend,
         actor: shooter,
         isUserMove: isUser,
+        talentName: talentTrigger?.talent.name,
       );
     }
   }
@@ -113,31 +168,58 @@ class StatContestResolver {
     double fatigue = 0.0,
     bool isUser = false,
   }) {
-    final success = rollContest(
-      attackStat: (passer.attributes.pass * (0.8 + openness * 0.4)).round(),
-      defendStat: defender.attributes.defence,
-      attackFatigue: fatigue,
-      momentumMultiplier: momentum.multiplierFor(attackingSide),
-      rng: rng,
+    final talentTrigger = TalentResolver.checkTalents(
+      TalentActivationContext(
+        actor: passer,
+        action: MatchAction.pass,
+        zone: PitchZone.midfield,
+        goalkeeper: defender,
+        defender: defender,
+        receiver: receiver,
+        momentum: momentum,
+        rng: rng,
+      ),
     );
+
+    final basePass = talentTrigger?.boostedAttackStat ?? passer.attributes.pass;
+    final targetDefence = talentTrigger?.bypassDefence == true
+        ? 10
+        : (talentTrigger?.suppressedDefendStat ?? defender.attributes.defence);
+
+    final success = talentTrigger?.bypassDefence == true
+        ? true
+        : rollContest(
+            attackStat: (basePass * (0.8 + openness * 0.4)).round(),
+            defendStat: targetDefence,
+            attackFatigue: fatigue,
+            momentumMultiplier: momentum.multiplierFor(attackingSide),
+            rng: rng,
+          );
+
+    final prefix = talentTrigger != null
+        ? '${talentTrigger.announcement} '
+        : '';
 
     if (success) {
       return ContestOutcome(
         result: ContestResult.passCompleted,
-        text: '${passer.name} finds ${receiver.name} cleanly. Still yours.',
+        text:
+            '$prefix${passer.name} finds ${receiver.name} cleanly. Still yours.',
         nextState: PlayState.attack,
         actor: passer,
         target: receiver,
         isUserMove: isUser,
+        talentName: talentTrigger?.talent.name,
       );
     } else {
       return ContestOutcome(
         result: ContestResult.turnover,
-        text: 'Intercepted by ${defender.name}. They read the pass.',
+        text: '${prefix}Intercepted by ${defender.name}. They read the pass.',
         nextState: PlayState.defend,
         actor: passer,
         target: defender,
         isUserMove: isUser,
+        talentName: talentTrigger?.talent.name,
       );
     }
   }
@@ -152,42 +234,69 @@ class StatContestResolver {
     double fatigue = 0.0,
     bool isUser = false,
   }) {
-    final success = rollContest(
-      attackStat: dribbler.attributes.dribble,
-      defendStat: defender.attributes.defence,
-      attackFatigue: fatigue,
-      momentumMultiplier: momentum.multiplierFor(attackingSide),
-      rng: rng,
+    final talentTrigger = TalentResolver.checkTalents(
+      TalentActivationContext(
+        actor: dribbler,
+        action: MatchAction.dribble,
+        zone: PitchZone.attackingThird,
+        goalkeeper: defender,
+        defender: defender,
+        momentum: momentum,
+        rng: rng,
+      ),
     );
+
+    final baseDribble =
+        talentTrigger?.boostedAttackStat ?? dribbler.attributes.dribble;
+    final targetDefence =
+        talentTrigger?.suppressedDefendStat ?? defender.attributes.defence;
+
+    final success = talentTrigger?.bypassDefence == true
+        ? true
+        : rollContest(
+            attackStat: baseDribble,
+            defendStat: targetDefence,
+            attackFatigue: fatigue,
+            momentumMultiplier: momentum.multiplierFor(attackingSide),
+            rng: rng,
+          );
+
+    final prefix = talentTrigger != null
+        ? '${talentTrigger.announcement} '
+        : '';
 
     if (success) {
       return ContestOutcome(
         result: ContestResult.dribbleSuccess,
-        text: '${dribbler.name} drops a shoulder and is past his man.',
+        text: '$prefix${dribbler.name} drops a shoulder and is past his man.',
         nextState: PlayState.attack,
         actor: dribbler,
         target: defender,
         isUserMove: isUser,
+        talentName: talentTrigger?.talent.name,
       );
     } else {
       final isFoul = rng.nextDouble() < 0.20;
       if (isFoul) {
         return ContestOutcome(
           result: ContestResult.foul,
-          text: '${defender.name} lunges in and brings down ${dribbler.name}. Free kick.',
+          text:
+              '$prefix${defender.name} lunges in and brings down ${dribbler.name}. Free kick.',
           nextState: PlayState.attack,
           actor: dribbler,
           target: defender,
           isUserMove: isUser,
+          talentName: talentTrigger?.talent.name,
         );
       }
       return ContestOutcome(
         result: ContestResult.tackled,
-        text: 'Tackled by ${defender.name}. They break the other way.',
+        text: '${prefix}Tackled by ${defender.name}. They break the other way.',
         nextState: PlayState.defend,
         actor: dribbler,
         target: defender,
         isUserMove: isUser,
+        talentName: talentTrigger?.talent.name,
       );
     }
   }
@@ -200,6 +309,7 @@ class StatContestResolver {
     required MatchMomentum momentum,
     required Random rng,
     bool isSlide = false,
+    bool isHighPress = false,
     double fatigue = 0.0,
     bool isUser = false,
   }) {
@@ -210,6 +320,29 @@ class StatContestResolver {
       momentumMultiplier: momentum.multiplierFor(defendingSide),
       rng: rng,
     );
+
+    if (isHighPress) {
+      if (success) {
+        return ContestOutcome(
+          result: ContestResult.tackled,
+          text:
+              'High press! ${defender.name} dispossesses ${attacker.name} thirty yards from goal.',
+          nextState: PlayState.attack,
+          actor: defender,
+          target: attacker,
+          isUserMove: isUser,
+        );
+      } else {
+        return ContestOutcome(
+          result: ContestResult.turnover,
+          text: '${attacker.name} plays around the press into midfield.',
+          nextState: PlayState.defend,
+          actor: defender,
+          target: attacker,
+          isUserMove: isUser,
+        );
+      }
+    }
 
     if (success) {
       return ContestOutcome(
@@ -249,4 +382,3 @@ class StatContestResolver {
     }
   }
 }
-

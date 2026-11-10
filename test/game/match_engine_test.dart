@@ -54,6 +54,10 @@ void main() {
     final sim = MatchSim(shirtName: 'BAKARE', random: rng);
     var moves = 0;
     while (!sim.isOver) {
+      if (sim.isHalfTime) {
+        sim.startSecondHalf();
+        continue;
+      }
       final options = sim.pad.values.toList();
       sim.play(options[rng.nextInt(options.length)]);
       moves++;

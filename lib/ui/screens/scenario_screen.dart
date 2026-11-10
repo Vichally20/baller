@@ -50,7 +50,12 @@ class _ScenarioScreenState extends State<ScenarioScreen> {
     WorldRepository.forSeed(widget.player.worldSeed),
   );
 
-  String _fill(String text) => fillText(text, widget.player, club: _club);
+  String _fill(String text) => fillText(
+    text,
+    widget.player,
+    club: _club,
+    opponent: widget.event.opponent,
+  );
 
   @override
   void dispose() {
@@ -65,10 +70,9 @@ class _ScenarioScreenState extends State<ScenarioScreen> {
       _saving = true;
     });
     final outcome = resolveChoice(_scenario.choices[index], _rng);
-    final status = widget.player.status.apply(outcome.effects).advance();
     await const CareerStore().save(
       widget.slot,
-      widget.player.withStatus(status),
+      afterScene(widget.player, widget.event, outcome.effects),
     );
     if (!mounted) return;
     setState(() {

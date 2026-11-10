@@ -41,4 +41,3 @@ enum PitchZone {
     _ => false,
   };
 }
-

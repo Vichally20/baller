@@ -48,4 +48,3 @@ class UtilityAction {
       ? 'UtilityAction($name -> ${target!.name})'
       : 'UtilityAction($name)';
 }
-

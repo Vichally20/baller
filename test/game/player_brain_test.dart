@@ -11,11 +11,14 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Response Curves', () {
-    test('exponential curve heavily suppresses low/mid values and spikes at top', () {
-      expect(applyCurve(0.5, CurveType.exponential), closeTo(0.125, 0.001));
-      expect(applyCurve(0.7, CurveType.exponential), closeTo(0.343, 0.001));
-      expect(applyCurve(0.95, CurveType.exponential), closeTo(0.857, 0.005));
-    });
+    test(
+      'exponential curve heavily suppresses low/mid values and spikes at top',
+      () {
+        expect(applyCurve(0.5, CurveType.exponential), closeTo(0.125, 0.001));
+        expect(applyCurve(0.7, CurveType.exponential), closeTo(0.343, 0.001));
+        expect(applyCurve(0.95, CurveType.exponential), closeTo(0.857, 0.005));
+      },
+    );
 
     test('quadratic curve curves moderately', () {
       expect(applyCurve(0.5, CurveType.quadratic), 0.25);
@@ -128,41 +131,44 @@ void main() {
       expect(decision.target, nessTeammate);
     });
 
-    test('Defensive panic: Player under pressure in own box chooses clearance', () {
-      const defender = SquadPlayer(
-        id: 'team-cb',
-        name: 'Stopper CB',
-        age: 27,
-        nationality: Nationality.english,
-        role: SquadRole.cb,
-        rating: 75,
-        value: 6000000,
-        attributes: PlayerAttributes(
+    test(
+      'Defensive panic: Player under pressure in own box chooses clearance',
+      () {
+        const defender = SquadPlayer(
+          id: 'team-cb',
+          name: 'Stopper CB',
           age: 27,
-          pace: 65,
-          shot: 30,
-          pass: 60,
-          dribble: 50,
-          defence: 82,
-          physical: 84,
-          ego: 30,
-          tacticalDiscipline: 80,
-        ),
-      );
+          nationality: Nationality.english,
+          role: SquadRole.cb,
+          rating: 75,
+          value: 6000000,
+          attributes: PlayerAttributes(
+            age: 27,
+            pace: 65,
+            shot: 30,
+            pass: 60,
+            dribble: 50,
+            defence: 82,
+            physical: 84,
+            ego: 30,
+            tacticalDiscipline: 80,
+          ),
+        );
 
-      final context = MatchDecisionContext(
-        actor: defender,
-        ballZone: PitchZone.ownBox,
-        tactics: possessionTactics,
-        defendersInWay: 3, // Pressured by 3 attackers
-        teammates: [defender, nessTeammate],
-      );
+        final context = MatchDecisionContext(
+          actor: defender,
+          ballZone: PitchZone.ownBox,
+          tactics: possessionTactics,
+          defendersInWay: 3, // Pressured by 3 attackers
+          teammates: [defender, nessTeammate],
+        );
 
-      final decision = PlayerBrain.decide(context);
+        final decision = PlayerBrain.decide(context);
 
-      expect(decision.type, CandidateActionType.clear);
-      expect(decision.name, 'Clear Ball Out of Danger');
-    });
+        expect(decision.type, CandidateActionType.clear);
+        expect(decision.name, 'Clear Ball Out of Danger');
+      },
+    );
 
     test('Desperation Mode tactic boosts teamwide shooting scores', () {
       const balancedPlayer = SquadPlayer(
@@ -207,10 +213,17 @@ void main() {
       final normalCandidates = PlayerBrain.generateCandidates(normalContext);
       final chaosCandidates = PlayerBrain.generateCandidates(chaosContext);
 
-      final normalShot = normalCandidates.firstWhere((c) => c.type == CandidateActionType.shoot);
-      final chaosShot = chaosCandidates.firstWhere((c) => c.type == CandidateActionType.shoot);
+      final normalShot = normalCandidates.firstWhere(
+        (c) => c.type == CandidateActionType.shoot,
+      );
+      final chaosShot = chaosCandidates.firstWhere(
+        (c) => c.type == CandidateActionType.shoot,
+      );
 
-      expect(chaosShot.score(chaosContext), greaterThan(normalShot.score(normalContext)));
+      expect(
+        chaosShot.score(chaosContext),
+        greaterThan(normalShot.score(normalContext)),
+      );
     });
   });
 }

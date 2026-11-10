@@ -52,19 +52,20 @@ class MatchDecisionContext {
   final List<SquadPlayer> opponents;
 
   /// Copies this context with a specific [target] and [targetOpenness].
-  MatchDecisionContext withTarget(SquadPlayer target, {double openness = 0.7}) =>
-      MatchDecisionContext(
-        actor: actor,
-        ballZone: ballZone,
-        tactics: tactics,
-        target: target,
-        minute: minute,
-        goalDifference: goalDifference,
-        actorStamina: actorStamina,
-        defendersInWay: defendersInWay,
-        targetOpenness: openness,
-        teammates: teammates,
-        opponents: opponents,
-      );
+  MatchDecisionContext withTarget(
+    SquadPlayer target, {
+    double openness = 0.7,
+  }) => MatchDecisionContext(
+    actor: actor,
+    ballZone: ballZone,
+    tactics: tactics,
+    target: target,
+    minute: minute,
+    goalDifference: goalDifference,
+    actorStamina: actorStamina,
+    defendersInWay: defendersInWay,
+    targetOpenness: openness,
+    teammates: teammates,
+    opponents: opponents,
+  );
 }
-

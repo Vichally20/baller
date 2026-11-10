@@ -150,10 +150,12 @@ void main() {
       final coachModern = CoachFactory.createForManager(volatileModern);
       final coachTrad = CoachFactory.createForManager(calmTraditional);
 
-      expect(coachModern.desperationMinute, lessThan(coachTrad.desperationMinute));
+      expect(
+        coachModern.desperationMinute,
+        lessThan(coachTrad.desperationMinute),
+      );
       expect(coachModern.desperationMinute, 70);
       expect(coachTrad.desperationMinute, 85);
     });
   });
 }
-

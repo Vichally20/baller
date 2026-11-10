@@ -1,7 +1,5 @@
 import 'dart:math';
 
-import 'package:baller/game/models/attribute.dart';
-import 'package:baller/game/models/position.dart';
 import 'package:baller/game/world/npc_generator.dart';
 import 'package:baller/game/world/world_models.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -46,17 +44,20 @@ void main() {
       }
     });
 
-    test('goalkeepers have low outfield skills but decent physical/defence', () {
-      final stats = NpcGenerator.generateAttributes(
-        role: SquadRole.gk,
-        rating: 70,
-        age: 28,
-        rng: rng,
-      );
-      expect(stats.shot, lessThan(stats.physical));
-      expect(stats.dribble, lessThan(stats.physical));
-      expect(stats.physical, inInclusiveRange(55, 85));
-    });
+    test(
+      'goalkeepers have low outfield skills but decent physical/defence',
+      () {
+        final stats = NpcGenerator.generateAttributes(
+          role: SquadRole.gk,
+          rating: 70,
+          age: 28,
+          rng: rng,
+        );
+        expect(stats.shot, lessThan(stats.physical));
+        expect(stats.dribble, lessThan(stats.physical));
+        expect(stats.physical, inInclusiveRange(55, 85));
+      },
+    );
 
     test('mental stats scale with age and rating', () {
       final youngRaw = NpcGenerator.generateAttributes(
@@ -115,4 +116,3 @@ void main() {
     });
   });
 }
-

@@ -37,4 +37,3 @@ class Consideration {
       ? 'Consideration($label, w: $weight, c: $curve)'
       : 'Consideration(w: $weight, c: $curve)';
 }
-

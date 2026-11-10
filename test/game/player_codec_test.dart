@@ -31,7 +31,10 @@ void main() {
         expect(loaded.attributes[a], original.attributes[a]);
       }
       expect(loaded.attributes.ego, original.attributes.ego);
-      expect(loaded.attributes.tacticalDiscipline, original.attributes.tacticalDiscipline);
+      expect(
+        loaded.attributes.tacticalDiscipline,
+        original.attributes.tacticalDiscipline,
+      );
       expect(loaded.attributes.teamwork, original.attributes.teamwork);
       expect(loaded.attributes.composure, original.attributes.composure);
       expect(loaded.attributes.stamina, original.attributes.stamina);

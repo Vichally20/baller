@@ -1,6 +1,8 @@
 import 'dart:math';
 
+import 'package:baller/game/career/growth.dart';
 import 'package:baller/game/career/pathway.dart';
+import 'package:baller/game/career/season.dart';
 import 'package:baller/game/models/player.dart';
 import 'package:baller/game/story/story_content.dart';
 
@@ -9,13 +11,28 @@ const int scenariosPerMatch = 2;
 
 /// One step of the career: a scenario or a match.
 sealed class StoryEvent {
-  const StoryEvent(this.chapter);
+  const StoryEvent(this.chapter, {this.fixture, this.opponent});
 
   final Chapter chapter;
+
+  /// Season mode only: the league match this round leads to.
+  final Fixture? fixture;
+
+  /// Season mode only: the next opponent's name, for {opponent}.
+  final String? opponent;
+
+  /// Part of the league season rather than the written story.
+  bool get isSeason => fixture != null;
 }
 
 class ScenarioEvent extends StoryEvent {
-  const ScenarioEvent(super.chapter, this.scenario, {required this.number});
+  const ScenarioEvent(
+    super.chapter,
+    this.scenario, {
+    required this.number,
+    super.fixture,
+    super.opponent,
+  });
 
   final Scenario scenario;
 
@@ -24,7 +41,7 @@ class ScenarioEvent extends StoryEvent {
 }
 
 class MatchEvent extends StoryEvent {
-  const MatchEvent(super.chapter, this.match);
+  const MatchEvent(super.chapter, this.match, {super.fixture, super.opponent});
 
   final MatchInfo match;
 }
@@ -50,7 +67,7 @@ bool chapterApplies(Chapter chapter, Player player) {
 List<StoryEvent> buildSchedule(StoryContent content, Player player) {
   final events = <StoryEvent>[];
   for (final chapter in content.chapters.where(
-    (c) => chapterApplies(c, player),
+    (c) => !c.pool && chapterApplies(c, player),
   )) {
     var matchCount = 0;
     for (var i = 0; i < chapter.scenarios.length; i++) {
@@ -106,6 +123,83 @@ bool trialVerdictDue(List<StoryEvent> schedule, Player player) {
   return index > lastEvent;
 }
 
+/// The player's next league round: [scenesPerRound] scenes drawn from the
+/// pool chapters meant for them, then the match. The pool is shuffled once
+/// per season, so scenes only repeat after the whole pool has been seen.
+/// Empty when the season is over.
+List<StoryEvent> seasonRound(
+  StoryContent content,
+  Player player,
+  Season season,
+) {
+  final fixture = season.nextFixture;
+  if (fixture == null) return const [];
+  final round = season.progress.round;
+  final atHome = fixture.home.id == season.club.id;
+  final opponent = season.sideName(atHome ? fixture.away : fixture.home);
+  final chapter = Chapter(
+    id: 'season-${season.progress.season}',
+    title: 'Season ${season.progress.season}',
+    scenarios: const [],
+  );
+  final pool = [
+    for (final c in content.chapters)
+      if (c.pool && chapterApplies(c, player)) ...c.scenarios,
+  ]..shuffle(Random(player.worldSeed ^ (season.progress.season * 7919)));
+  return [
+    if (pool.isNotEmpty)
+      for (var i = 0; i < scenesPerRound; i++)
+        ScenarioEvent(
+          chapter,
+          pool[(round * scenesPerRound + i) % pool.length],
+          number: i + 1,
+          fixture: fixture,
+          opponent: opponent,
+        ),
+    MatchEvent(
+      chapter,
+      MatchInfo(
+        title: 'Round ${round + 1} · ${atHome ? 'Home' : 'Away'}',
+        opponent: opponent,
+      ),
+      fixture: fixture,
+      opponent: opponent,
+    ),
+  ];
+}
+
+/// Which match [event] is, for saving a match in progress: its place in
+/// the story, or its league round.
+String matchKey(Player player, StoryEvent event) => event.isSeason
+    ? 'season:${player.season.season}:${player.season.round}'
+    : 'story:${player.status.eventIndex}';
+
+/// The player after a scene: its effects applied, and the story (or the
+/// season round) moved on.
+Player afterScene(Player player, StoryEvent event, Effects effects) {
+  final status = player.status.apply(effects);
+  return event.isSeason
+      ? player.withStatus(status).withSeason(player.season.sceneDone())
+      : player.withStatus(status.advance());
+}
+
+/// The player after a match: any [growth] from the match applied, then a
+/// league result recorded, or the story moved on.
+Player afterMatch(
+  Player player,
+  StoryEvent event, {
+  required int goalsFor,
+  required int goalsAgainst,
+  Growth? growth,
+}) {
+  final trained = growth == null
+      ? player
+      : player.copyWith(attributes: growth.attributes, xp: growth.xp);
+  return event.isSeason
+      ? trained.withSeason(trained.season.record(goalsFor, goalsAgainst))
+      : trained.withStatus(trained.status.advance());
+}
+
 /// Picks one of the choice's outcomes, weighted.
 Outcome resolveChoice(Choice choice, Random rng) {
   final total = choice.outcomes.fold(0, (sum, o) => sum + o.weight);
@@ -118,12 +212,19 @@ Outcome resolveChoice(Choice choice, Random rng) {
 }
 
 /// Replaces {name}, {first}, {shirt}, {city}, {country}, {club},
-/// {manager} and {position} in story text. Without a club, {club} and
+/// {manager}, {position} and {opponent} in story text. {opponent} is the
+/// next league opponent in season mode, otherwise "the opposition". Without a club, {club} and
 /// {manager} read "the club" and "the manager", and {position} is the
 /// position the player wants.
-String fillText(String text, Player player, {CareerClub? club}) {
+String fillText(
+  String text,
+  Player player, {
+  CareerClub? club,
+  String? opponent,
+}) {
   final id = player.identity;
   return text
+      .replaceAll('{opponent}', opponent ?? 'the opposition')
       .replaceAll('{club}', club?.name ?? 'the club')
       .replaceAll('{manager}', club?.club.manager.name ?? 'the manager')
       .replaceAll(

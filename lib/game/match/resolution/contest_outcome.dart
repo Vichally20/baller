@@ -24,6 +24,7 @@ class ContestOutcome {
     this.actor,
     this.target,
     this.isUserMove = false,
+    this.talentName,
   });
 
   final ContestResult result;
@@ -34,6 +35,8 @@ class ContestOutcome {
   final SquadPlayer? target;
   final bool isUserMove;
 
+  /// The talent that triggered on this action, if any.
+  final String? talentName;
+
   bool get isGoal => scoringSide != null;
 }
-

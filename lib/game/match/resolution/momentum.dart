@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:baller/game/match/match_engine.dart';
 
 /// Tracks in-game momentum between Home and Away sides.
@@ -34,4 +32,3 @@ class MatchMomentum {
     home = (home * 0.95 + 0.5 * 0.05).clamp(0.1, 0.9);
   }
 }
-

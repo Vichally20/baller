@@ -83,7 +83,7 @@ void main() {
       expect(club.squad, hasLength(Club.maxSquadSize));
       expect(club.squad.where((p) => p.role == SquadRole.gk), hasLength(2));
       for (final p in club.squad) {
-        expect(p.rating, inInclusiveRange(40, 92));
+        expect(p.rating, inInclusiveRange(40, 99));
         expect(p.age, inInclusiveRange(17, 34));
         expect(p.value, greaterThan(0));
         expect(p.id, startsWith(club.id));
@@ -111,6 +111,80 @@ void main() {
     for (var s = 1; s < 5; s++) {
       expect(avg(s + 1), greaterThan(avg(s)));
     }
+  });
+
+  test('division boosts: value and rating, double for special players', () {
+    for (final league in world.leagues) {
+      for (final (d, division) in league.divisions.indexed) {
+        final country = league.country;
+        for (final club in division) {
+          for (final p in club.squad) {
+            expect(
+              p.value,
+              greaterThanOrEqualTo(
+                divisionValueBonus(d, country, special: p.innateTalent != null),
+              ),
+              reason: '${club.name} ${p.name}',
+            );
+          }
+          // Each club's best outfield player is special too.
+          final best = club.squad
+              .where((p) => p.role != SquadRole.gk)
+              .reduce((a, b) => b.rating > a.rating ? b : a);
+          expect(
+            best.value,
+            greaterThanOrEqualTo(divisionValueBonus(d, country, special: true)),
+          );
+        }
+      }
+    }
+    // Division 1 averages well above before the boost (about 68 and €1.5m).
+    final top = world.leagues.first.divisions.first.expand((c) => c.squad);
+    final avg = top.fold(0, (s, p) => s + p.rating) / top.length;
+    expect(avg, greaterThan(71));
+  });
+
+  test(
+    'the bonus follows the league: top five above the base, others below',
+    () {
+      for (final c in LeagueCountry.values) {
+        final bonus = divisionValueBonus(0, c);
+        final topFive = {
+          LeagueCountry.england,
+          LeagueCountry.spain,
+          LeagueCountry.germany,
+          LeagueCountry.italy,
+          LeagueCountry.france,
+        }.contains(c);
+        expect(
+          topFive ? bonus > 15000000 : bonus < 15000000,
+          isTrue,
+          reason: '${c.label}: $bonus',
+        );
+      }
+      expect(divisionValueBonus(0, LeagueCountry.england), 24000000);
+      expect(
+        divisionValueBonus(0, LeagueCountry.england, special: true),
+        48000000,
+      );
+    },
+  );
+
+  test('a signed player gets the division boost in their value', () {
+    final player = testPlayer(3);
+    final club = world.leagues.first.divisions.first.first; // England D1
+    final signed = playerMarketValue(player, club: club);
+    expect(signed, greaterThan(playerMarketValue(player)));
+    expect(
+      signed,
+      greaterThanOrEqualTo(
+        divisionValueBonus(
+          0,
+          LeagueCountry.england,
+          special: player.innateTalent != null,
+        ),
+      ),
+    );
   });
 
   test('managers match their philosophy', () {
@@ -186,7 +260,10 @@ void main() {
       expect(loaded.rating, player.rating);
       expect(loaded.attributes.pace, player.attributes.pace);
       expect(loaded.attributes.ego, player.attributes.ego);
-      expect(loaded.attributes.tacticalDiscipline, player.attributes.tacticalDiscipline);
+      expect(
+        loaded.attributes.tacticalDiscipline,
+        player.attributes.tacticalDiscipline,
+      );
       expect(loaded.wage, player.wage);
       expect(loaded.contractYears, player.contractYears);
     });

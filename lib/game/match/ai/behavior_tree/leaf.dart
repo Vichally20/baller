@@ -31,4 +31,3 @@ class BTAction<T> extends BTNode<T> {
   @override
   String toString() => label != null ? 'Action($label)' : 'Action()';
 }
-

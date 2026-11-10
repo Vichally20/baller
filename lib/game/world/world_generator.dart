@@ -131,56 +131,87 @@ List<SquadPlayer> _squad(
   int stars,
   Random rng,
 ) {
-  // 1★ ≈ 52 average rating … 5★ ≈ 76.
+  // 1★ ≈ 52 average rating … 5★ ≈ 76, before the division boost.
   final mean = 46 + stars * 6;
-  var playerIndex = 0;
-  return [
+
+  // Pass 1: who each player is, and their talents (from the base rating).
+  final drafts = [
     for (final (role, count) in _squadShape)
       for (var i = 0; i < count; i++)
         () {
-          final pIndex = playerIndex++;
           final age = 17 + rng.nextInt(18);
           // Roughly bell-shaped spread of ±12, younger players a bit lower.
           final spread = rng.nextInt(9) + rng.nextInt(9) + rng.nextInt(9) - 12;
           final rating = (mean + spread - (age < 20 ? 3 : 0)).clamp(40, 92);
           final nationality = _nationality(country, rng, 0.75);
           final name = nationality.randomName(rng);
-          final value = marketValue(
-            rating: rating,
-            age: age,
-            leagueMultiplier: country.valueMultiplier,
-            divisionMultiplier: divisionMultipliers[divisionIndex],
-          );
-
           final playerRng = Random(rng.nextInt(0x7fffffff));
-          final attributes = NpcGenerator.generateAttributes(
-            role: role,
-            rating: rating,
-            age: age,
-            rng: playerRng,
+          final (innate, logic) = NpcGenerator.generateTalents(
+            rating,
+            playerRng,
           );
-          final foot = NpcGenerator.generateFoot(role, playerRng);
-          final (innate, logic) = NpcGenerator.generateTalents(rating, playerRng);
-          final contractYears = 1 + playerRng.nextInt(4);
-          final wage = NpcGenerator.generateWage(value, divisionIndex + 1, playerRng);
-
-          return SquadPlayer(
-            id: '$clubId-p$pIndex',
-            name: name,
-            age: age,
-            nationality: nationality,
+          return (
             role: role,
+            age: age,
             rating: rating,
-            value: value,
-            attributes: attributes,
-            foot: foot,
-            innateTalent: innate,
-            logicTalents: logic,
-            contractYears: contractYears,
-            wage: wage,
-            clubId: clubId,
-            squadNumber: pIndex + 1,
+            nationality: nationality,
+            name: name,
+            rng: playerRng,
+            innate: innate,
+            logic: logic,
           );
         }(),
+  ];
+
+  // The club's best outfield player is one of its special players.
+  var best = drafts.indexWhere((d) => d.role != SquadRole.gk);
+  for (final (i, d) in drafts.indexed) {
+    if (d.role != SquadRole.gk && d.rating > drafts[best].rating) best = i;
+  }
+
+  // Pass 2: the boost, then stats, value and contract from the boosted
+  // rating, so a boosted player plays better as well as costing more.
+  final (_, boostRating) = divisionBoosts[divisionIndex];
+  return [
+    for (final (i, d) in drafts.indexed)
+      () {
+        final special = d.innate != null || i == best;
+        final factor = special ? 2 : 1;
+        final rating = (d.rating + boostRating * factor).clamp(40, 99);
+        final value =
+            marketValue(
+              rating: rating,
+              age: d.age,
+              leagueMultiplier: country.valueMultiplier,
+              divisionMultiplier: divisionMultipliers[divisionIndex],
+            ) +
+            divisionValueBonus(divisionIndex, country, special: special);
+        final attributes = NpcGenerator.generateAttributes(
+          role: d.role,
+          rating: rating,
+          age: d.age,
+          rng: d.rng,
+        );
+        final foot = NpcGenerator.generateFoot(d.role, d.rng);
+        final contractYears = 1 + d.rng.nextInt(4);
+        final wage = NpcGenerator.generateWage(value, divisionIndex + 1, d.rng);
+        return SquadPlayer(
+          id: '$clubId-p$i',
+          name: d.name,
+          age: d.age,
+          nationality: d.nationality,
+          role: d.role,
+          rating: rating,
+          value: value,
+          attributes: attributes,
+          foot: foot,
+          innateTalent: d.innate,
+          logicTalents: d.logic,
+          contractYears: contractYears,
+          wage: wage,
+          clubId: clubId,
+          squadNumber: i + 1,
+        );
+      }(),
   ];
 }

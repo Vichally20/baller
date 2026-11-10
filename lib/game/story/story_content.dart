@@ -117,6 +117,7 @@ class Chapter {
     this.matches = const [],
     this.when = ChapterCondition.always,
     this.verdict = false,
+    this.pool = false,
   });
 
   final String id;
@@ -128,6 +129,10 @@ class Chapter {
 
   /// For trial chapters: the club gives its verdict when the chapter ends.
   final bool verdict;
+
+  /// A pool of repeatable scenes for season mode, not part of the story's
+  /// order. Its scenes are drawn two before each league match.
+  final bool pool;
 
   /// Names the matches that follow each pair of scenarios, in order.
   final List<MatchInfo> matches;
@@ -216,6 +221,13 @@ Chapter _parseChapter(Object? json, String file) {
   if (verdict is! bool) {
     throw FormatException('$file: "verdict" must be true or false');
   }
+  final pool = map['pool'] ?? false;
+  if (pool is! bool) {
+    throw FormatException('$file: "pool" must be true or false');
+  }
+  if (pool && verdict) {
+    throw FormatException('$file: a pool chapter cannot have a verdict');
+  }
   return Chapter(
     id: id,
     title: _string(map, 'title', file),
@@ -223,6 +235,7 @@ Chapter _parseChapter(Object? json, String file) {
         ? _parseCondition(map['when'], '$file › when')
         : ChapterCondition.always,
     verdict: verdict,
+    pool: pool,
     scenarios: [
       for (var i = 0; i < scenarios.length; i++)
         _parseScenario(scenarios[i], '$file › scenarios[$i]'),

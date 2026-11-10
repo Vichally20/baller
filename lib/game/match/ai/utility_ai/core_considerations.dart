@@ -2,7 +2,6 @@ import 'package:baller/game/match/ai/utility_ai/consideration.dart';
 import 'package:baller/game/match/ai/utility_ai/match_decision_context.dart';
 import 'package:baller/game/match/ai/utility_ai/pitch_zone.dart';
 import 'package:baller/game/match/ai/utility_ai/response_curves.dart';
-import 'package:baller/game/models/position.dart';
 import 'package:baller/game/world/world_models.dart';
 
 /// Predefined Considerations for the Football Utility AI engine.
@@ -13,13 +12,15 @@ class CoreConsiderations {
   ///
   /// Uses an exponential curve: players with average ego (40-60) get negligible bonus,
   /// but extreme ego (85-99) produces a massive spike, replicating Blue Lock mechanics.
-  static Consideration ego({double weight = 2.5, String label = 'Ego Impulse'}) =>
-      Consideration(
-        label: label,
-        weight: weight,
-        curve: CurveType.exponential,
-        evaluate: (ctx) => ctx.actor.attributes.ego / 100.0,
-      );
+  static Consideration ego({
+    double weight = 2.5,
+    String label = 'Ego Impulse',
+  }) => Consideration(
+    label: label,
+    weight: weight,
+    curve: CurveType.exponential,
+    evaluate: (ctx) => ctx.actor.attributes.ego / 100.0,
+  );
 
   /// TACTICAL COMPLIANCE: How strongly the player obeys the coach's active instructions.
   ///

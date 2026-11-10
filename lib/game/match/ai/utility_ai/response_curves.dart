@@ -31,4 +31,3 @@ double applyCurve(double input, CurveType curve) {
     CurveType.step => x >= 0.5 ? 1.0 : 0.0,
   };
 }
-

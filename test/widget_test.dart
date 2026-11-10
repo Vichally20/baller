@@ -17,6 +17,10 @@ import 'package:baller/ui/screens/signing_screen.dart';
 import 'package:baller/ui/widgets/alabaster.dart';
 import 'package:baller/ui/screens/club_screen.dart';
 import 'package:baller/ui/screens/leagues_screen.dart';
+import 'package:baller/game/match/match_engine.dart';
+import 'package:baller/ui/screens/lineup_screen.dart';
+import 'package:baller/ui/screens/season_screen.dart';
+import 'package:baller/ui/screens/match_screen.dart';
 import 'package:baller/ui/screens/identity_screen.dart';
 import 'package:baller/game/data/locations.dart';
 import 'package:baller/game/models/position.dart';
@@ -146,6 +150,7 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     StoryRepository.resetCache();
+    WorldRepository.clearCache();
   });
 
   testWidgets('title screen starts a new career', (tester) async {
@@ -349,11 +354,198 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('YOUR CLUB'), findsOneWidget);
-    expect(find.text('To be continued'), findsOneWidget);
+    // The story is played out, so the league season begins.
+    expect(find.text('UP NEXT · SEASON 1'), findsOneWidget);
     player = (await const CareerStore().loadSlots())[0]!;
     expect(player.placement!.signed, isTrue);
     expect(player.placement!.site, isNull);
     expect(player.status.eventIndex, 3);
+  });
+
+  testWidgets('a match: line-ups, kick-off, half-time, full time', (
+    tester,
+  ) async {
+    _usePhone(tester);
+    final trialist = placedPlayer(offers: false);
+    // Both trial scenes played: the trial match is next.
+    final atMatch = trialist.withStatus(trialist.status.advance().advance());
+    await _continueWith(tester, atMatch);
+    expect(find.text('Trial match'), findsOneWidget);
+    await tester.tap(find.text('Play match'));
+    await tester.pumpAndSettle();
+
+    // The line-ups: both teams, you in your manager's position.
+    expect(find.byType(LineupScreen), findsOneWidget);
+    expect(find.text('The other trialists'), findsOneWidget);
+    expect(find.text(trialist.identity.shirtName), findsOneWidget);
+    await tester.tap(find.text('Kick off'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MatchScreen), findsOneWidget);
+
+    /// Taps whichever move the pad shows first.
+    Future<void> playMove() async {
+      for (final action in MatchAction.values) {
+        final arm = find.byKey(ValueKey('pad-${action.name}'));
+        if (arm.evaluate().isNotEmpty) {
+          await tester.tap(arm);
+          await tester.pumpAndSettle();
+          return;
+        }
+      }
+      fail('No move on the pad');
+    }
+
+    var moves = 0;
+    while (find.text('Start second half').evaluate().isEmpty) {
+      await playMove();
+      expect(++moves, lessThan(40));
+    }
+    expect(find.text('HALF-TIME'), findsOneWidget);
+    expect(find.textContaining("45'"), findsWidgets);
+    await tester.tap(find.text('Start second half'));
+    await tester.pumpAndSettle();
+
+    while (find.text('Continue').evaluate().isEmpty) {
+      await playMove();
+      expect(++moves, lessThan(80));
+    }
+    expect(find.text('FULL TIME'), findsOneWidget);
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    // Straight back to the hub (not the line-ups), match saved.
+    expect(find.byType(LineupScreen), findsNothing);
+    expect(find.text('TRIAL VERDICT'), findsOneWidget);
+    final saved = (await const CareerStore().loadSlots())[0]!;
+    expect(saved.status.eventIndex, 3);
+  });
+
+  testWidgets('after the story: the league season, round by round', (
+    tester,
+  ) async {
+    _usePhone(tester);
+    final prodigy = placedPlayer(offers: true);
+    // "First Days" played: two scenes and a match.
+    final done = prodigy.withStatus(
+      prodigy.status.advance().advance().advance(),
+    );
+    await _continueWith(tester, done);
+
+    // No dead end: the season's first round is up next.
+    expect(find.text('To be continued'), findsNothing);
+    expect(find.text('UP NEXT · SEASON 1'), findsOneWidget);
+    expect(find.text('Scene 1'), findsOneWidget);
+    final table = find.text('Table');
+    await tester.scrollUntilVisible(table, 200);
+    expect(find.textContaining('not started'), findsOneWidget);
+
+    // A scene moves the round on, not the story.
+    await tester.scrollUntilVisible(find.text('Play scene'), -200);
+    await tester.tap(find.text('Play scene'));
+    await tester.pumpAndSettle();
+    final a = find.text('A');
+    await tester.scrollUntilVisible(a, 200);
+    await tester.ensureVisible(a);
+    await tester.pumpAndSettle();
+    await tester.tap(a);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Back to hub'));
+    await tester.pumpAndSettle();
+    var saved = (await const CareerStore().loadSlots())[0]!;
+    expect(saved.season.scenesPlayed, 1);
+    expect(saved.status.eventIndex, done.status.eventIndex);
+    expect(find.text('Scene 2'), findsOneWidget);
+
+    // After a win, the table and your results show it.
+    await _continueWith(tester, saved.withSeason(saved.season.record(2, 1)));
+    await tester.scrollUntilVisible(find.text('Table'), 200);
+    expect(find.textContaining('· 3 pts'), findsOneWidget);
+    await tester.tap(find.text('Table'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SeasonScreen), findsOneWidget);
+    final results = find.text('YOUR RESULTS');
+    await tester.scrollUntilVisible(results, 300);
+    // In the round's results and in yours.
+    expect(find.text('2–1'), findsNWidgets(2));
+
+    // A finished season offers the next one.
+    var full = saved.season;
+    for (var i = 0; i < 38; i++) {
+      full = full.record(1, 0);
+    }
+    await _continueWith(tester, saved.withSeason(full));
+    expect(find.text('SEASON 1 OVER'), findsOneWidget);
+    expect(find.text('You finished 1st'), findsOneWidget);
+    await tester.tap(find.text('Start season 2'));
+    await tester.pumpAndSettle();
+    expect(find.text('UP NEXT · SEASON 2'), findsOneWidget);
+    saved = (await const CareerStore().loadSlots())[0]!;
+    expect(saved.season.season, 2);
+  });
+
+  testWidgets('leaving a match half-way and coming back resumes it', (
+    tester,
+  ) async {
+    _usePhone(tester);
+    final trialist = placedPlayer(offers: false);
+    await _continueWith(
+      tester,
+      trialist.withStatus(trialist.status.advance().advance()),
+    );
+    await tester.tap(find.text('Play match'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kick off'));
+    await tester.pumpAndSettle();
+
+    Future<void> playMove() async {
+      for (final action in MatchAction.values) {
+        final arm = find.byKey(ValueKey('pad-${action.name}'));
+        if (arm.evaluate().isNotEmpty) {
+          await tester.tap(arm);
+          await tester.pumpAndSettle();
+          return;
+        }
+      }
+    }
+
+    for (var i = 0; i < 5; i++) {
+      await playMove();
+    }
+    String scoreLabel() => tester
+        .getSemantics(find.bySemanticsLabel(RegExp('minute')).first)
+        .label;
+    final before = scoreLabel();
+    var saved = (await const CareerStore().loadSlots())[0]!;
+    expect(saved.match!.moves, hasLength(5));
+
+    // Leave: back to the line-ups, back to the hub.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Resume match'), findsOneWidget);
+
+    // Come back, even after a restart: the same minute and score.
+    await _continueWith(tester, saved);
+    await tester.tap(find.text('Resume match'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Resume match'));
+    await tester.pumpAndSettle();
+    expect(scoreLabel(), before);
+
+    // Finishing the match clears it.
+    while (find.text('Continue').evaluate().isEmpty) {
+      if (find.text('Start second half').evaluate().isNotEmpty) {
+        await tester.tap(find.text('Start second half'));
+        await tester.pumpAndSettle();
+      }
+      await playMove();
+    }
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    saved = (await const CareerStore().loadSlots())[0]!;
+    expect(saved.match, isNull);
+    expect(saved.status.eventIndex, 3);
   });
 
   testWidgets('offers: pick a club, the manager decides, First Days begins', (
@@ -376,6 +568,8 @@ void main() {
 
     // Pick the second offer.
     final second = pathway.options[1];
+    await tester.ensureVisible(find.text(second.name));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(second.name));
     await tester.pump();
     await tester.tap(find.text('Join ${second.name}'));
@@ -506,7 +700,17 @@ void main() {
     expect(find.byType(ClubScreen), findsOneWidget);
     expect(find.text('Spain · Division 2'), findsOneWidget);
     expect(find.text('MANAGER'), findsOneWidget);
-    expect(find.text(top.first.manager.name), findsOneWidget);
+    final managerCard = find.ancestor(
+      of: find.text('MANAGER'),
+      matching: find.byType(SoftCard),
+    );
+    expect(
+      find.descendant(
+        of: managerCard,
+        matching: find.text(top.first.manager.name),
+      ),
+      findsOneWidget,
+    );
     final squad = find.textContaining('22 / 22');
     await tester.scrollUntilVisible(squad, 200);
     expect(squad, findsOneWidget);

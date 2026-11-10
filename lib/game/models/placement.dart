@@ -52,6 +52,50 @@ enum PathwayKind {
   }
 }
 
+/// A playing contract: weekly wage in euros, and how many seasons it runs.
+class Contract {
+  const Contract({
+    required this.weeklyWage,
+    required this.years,
+    required this.startSeason,
+  });
+
+  final int weeklyWage;
+  final int years;
+
+  /// The season (1-based) the contract starts in.
+  final int startSeason;
+
+  /// The last season it covers.
+  int get endSeason => startSeason + years - 1;
+
+  /// Paid on the last day of every month.
+  int get monthlyWage => (weeklyWage * 52 / 12).round();
+
+  Contract withWeeklyWage(int wage) =>
+      Contract(weeklyWage: wage, years: years, startSeason: startSeason);
+
+  Map<String, Object?> toJson() => {
+    'wage': weeklyWage,
+    'years': years,
+    'start': startSeason,
+  };
+
+  /// Null when [json] is malformed.
+  static Contract? fromJson(Object? json) {
+    if (json
+        case {
+          'wage': final int wage,
+          'years': final int years,
+          'start': final int start,
+        }
+        when wage >= 0 && years >= 1 && start >= 1) {
+      return Contract(weeklyWage: wage, years: years, startSeason: start);
+    }
+    return null;
+  }
+}
+
 /// The club a career is attached to: signed, or on trial there.
 class Placement {
   const Placement({
@@ -59,6 +103,7 @@ class Placement {
     required this.clubId,
     this.site,
     this.signed = false,
+    this.contract,
   });
 
   final PathwayKind kind;
@@ -70,15 +115,33 @@ class Placement {
   /// False while the player is still on trial.
   final bool signed;
 
-  /// After a successful trial: signed, and an African academy trialist moves
-  /// to the parent club.
-  Placement sign() => Placement(kind: kind, clubId: clubId, signed: true);
+  /// Wage and length; null while on trial (and in saves from before
+  /// contracts, which get one worked out when needed).
+  final Contract? contract;
+
+  /// After a successful trial: signed on [contract], and an African academy
+  /// trialist moves to the parent club.
+  Placement sign([Contract? contract]) => Placement(
+    kind: kind,
+    clubId: clubId,
+    signed: true,
+    contract: contract ?? this.contract,
+  );
+
+  Placement withContract(Contract contract) => Placement(
+    kind: kind,
+    clubId: clubId,
+    site: site,
+    signed: signed,
+    contract: contract,
+  );
 
   Map<String, Object?> toJson() => {
     'kind': kind.id,
     'club': clubId,
     'site': ?site,
     'signed': signed,
+    'contract': ?contract?.toJson(),
   };
 
   /// Null when [json] is malformed.
@@ -93,11 +156,17 @@ class Placement {
       final kind = PathwayKind.byId(kindId);
       final site = json['site'];
       if (kind == null || (site != null && site is! String)) return null;
+      Contract? contract;
+      if (json['contract'] case final Object raw) {
+        contract = Contract.fromJson(raw);
+        if (contract == null) return null;
+      }
       return Placement(
         kind: kind,
         clubId: clubId,
         site: site as String?,
         signed: signed,
+        contract: contract,
       );
     }
     return null;

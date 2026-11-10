@@ -29,7 +29,9 @@ void main() {
     expect(clubA.squad.length, originalClubACount - 1);
     expect(clubB.squad.length, originalClubBCount + 1);
 
-    final movedPlayerInB = clubB.squad.firstWhere((p) => p.id == playerToMove.id);
+    final movedPlayerInB = clubB.squad.firstWhere(
+      (p) => p.id == playerToMove.id,
+    );
     expect(movedPlayerInB.clubId, clubB.id);
     expect(clubA.squad.any((p) => p.id == playerToMove.id), isFalse);
   });
@@ -109,10 +111,7 @@ void main() {
     final player = clubA.squad.first;
 
     // Simulate saved transfer of player to clubB with bumped wage
-    final updated = player.copyWith(
-      clubId: clubB.id,
-      wage: 200000,
-    );
+    final updated = player.copyWith(clubId: clubB.id, wage: 200000);
 
     final saveState = WorldSaveState(
       transfers: [
@@ -135,4 +134,3 @@ void main() {
     expect(playerInB.wage, 200000);
   });
 }
-

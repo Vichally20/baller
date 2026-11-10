@@ -1,9 +1,13 @@
 import 'package:baller/game/data/talents.dart';
+import 'package:baller/game/models/attribute.dart';
+import 'package:baller/game/models/life.dart';
 import 'package:baller/game/models/location.dart';
+import 'package:baller/game/models/match_progress.dart';
 import 'package:baller/game/models/placement.dart';
 import 'package:baller/game/models/player_attributes.dart';
 import 'package:baller/game/models/player_identity.dart';
 import 'package:baller/game/models/position.dart';
+import 'package:baller/game/models/season_progress.dart';
 import 'package:baller/game/models/talent.dart';
 import 'package:baller/game/models/talent_tier.dart';
 import 'package:baller/game/story/career_status.dart';
@@ -20,6 +24,10 @@ class Player {
     this.logicTalents = const [],
     this.status = CareerStatus.initial,
     this.placement,
+    this.season = SeasonProgress.first,
+    this.xp = const {},
+    this.life = Life.start,
+    this.match,
   }) : assert(
          innateTalent == null ||
              innateTalent.archetype == TalentArchetype.innate,
@@ -52,27 +60,57 @@ class Player {
   /// (and in saves from before pathways existed).
   final Placement? placement;
 
+  /// League progress once the written story runs out (season mode).
+  final SeasonProgress season;
+
+  /// Match experience banked towards each skill's next +1.
+  final Map<Attribute, int> xp;
+
+  /// Agent, manager talks and an agreed move.
+  final Life life;
+
+  /// A match started but not finished (resumed when the player comes back).
+  final MatchProgress? match;
+
   double get talentScore =>
       TalentTier.score(attributes, hasInnate: innateTalent != null);
 
   TalentTier get tier => TalentTier.of(talentScore);
 
-  Player withStatus(CareerStatus status) =>
-      _copy(status: status, placement: placement);
+  Player withStatus(CareerStatus status) => copyWith(status: status);
 
-  Player withPlacement(Placement placement) =>
-      _copy(status: status, placement: placement);
+  Player withPlacement(Placement placement) => copyWith(placement: placement);
 
-  Player _copy({required CareerStatus status, required Placement? placement}) =>
-      Player(
-        identity: identity,
-        attributes: attributes,
-        location: location,
-        preferredPosition: preferredPosition,
-        worldSeed: worldSeed,
-        innateTalent: innateTalent,
-        logicTalents: logicTalents,
-        status: status,
-        placement: placement,
-      );
+  Player withSeason(SeasonProgress season) => copyWith(season: season);
+
+  Player copyWith({
+    PlayerIdentity? identity,
+    PlayerAttributes? attributes,
+    Location? location,
+    Position? preferredPosition,
+    int? worldSeed,
+    Talent? innateTalent,
+    List<Talent>? logicTalents,
+    CareerStatus? status,
+    Placement? placement,
+    SeasonProgress? season,
+    Map<Attribute, int>? xp,
+    Life? life,
+    MatchProgress? match,
+    bool clearMatch = false,
+  }) => Player(
+    identity: identity ?? this.identity,
+    attributes: attributes ?? this.attributes,
+    location: location ?? this.location,
+    preferredPosition: preferredPosition ?? this.preferredPosition,
+    worldSeed: worldSeed ?? this.worldSeed,
+    innateTalent: innateTalent ?? this.innateTalent,
+    logicTalents: logicTalents ?? this.logicTalents,
+    status: status ?? this.status,
+    placement: placement ?? this.placement,
+    season: season ?? this.season,
+    xp: xp ?? this.xp,
+    life: life ?? this.life,
+    match: clearMatch ? null : (match ?? this.match),
+  );
 }

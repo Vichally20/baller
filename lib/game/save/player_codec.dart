@@ -1,8 +1,11 @@
 import 'package:baller/game/data/locations.dart';
 import 'package:baller/game/data/talents.dart';
 import 'package:baller/game/models/attribute.dart';
+import 'package:baller/game/models/life.dart';
 import 'package:baller/game/models/location.dart';
+import 'package:baller/game/models/match_progress.dart';
 import 'package:baller/game/models/placement.dart';
+import 'package:baller/game/models/season_progress.dart';
 import 'package:baller/game/models/player.dart';
 import 'package:baller/game/models/player_attributes.dart';
 import 'package:baller/game/models/player_identity.dart';
@@ -50,6 +53,12 @@ class PlayerCodec {
     'logic': [for (final t in player.logicTalents) t.id],
     'status': player.status.toJson(),
     'placement': ?player.placement?.toJson(),
+    'season': player.season.toJson(),
+    'life': player.life.toJson(),
+    'match': ?player.match?.toJson(),
+    'xp': {
+      for (final MapEntry(:key, :value) in player.xp.entries) key.name: value,
+    },
   };
 
   Player? fromJson(Object? json) {
@@ -77,6 +86,42 @@ class PlayerCodec {
       if (json['placement'] case final Object placementJson) {
         placement = Placement.fromJson(placementJson);
         if (placement == null) return null;
+      }
+
+      // Saves from before stat growth have no XP banked.
+      final xp = <Attribute, int>{};
+      if (json['xp'] case final Map<String, Object?> raw) {
+        for (final MapEntry(:key, :value) in raw.entries) {
+          final stat = _find(
+            Attribute.values,
+            (a) => a.name == key && a.isSkill,
+          );
+          if (stat == null || value is! int || value < 0) return null;
+          xp[stat] = value;
+        }
+      } else if (json.containsKey('xp')) {
+        return null;
+      }
+
+      // Saves from before the player screen start with no agent or talks.
+      var life = Life.start;
+      if (json['life'] case final Object raw) {
+        final parsed = Life.fromJson(raw);
+        if (parsed == null) return null;
+        life = parsed;
+      }
+
+      // A match in progress; a broken one is dropped rather than the save.
+      final match = json['match'] == null
+          ? null
+          : MatchProgress.fromJson(json['match']);
+
+      // Saves from before season mode start at season 1, round 1.
+      var season = SeasonProgress.first;
+      if (json['season'] case final Object seasonJson) {
+        final parsed = SeasonProgress.fromJson(seasonJson);
+        if (parsed == null) return null;
+        season = parsed;
       }
 
       final rolls = <Attribute, int>{};
@@ -156,6 +201,10 @@ class PlayerCodec {
         logicTalents: List.unmodifiable(logic),
         status: status,
         placement: placement,
+        season: season,
+        xp: Map.unmodifiable(xp),
+        life: life,
+        match: match,
       );
     }
     return null;

@@ -320,13 +320,17 @@ CareerClub? careerClubOf(Player player, World world) {
   if (placement == null) return null;
   final club = world.clubById(placement.clubId);
   if (club == null) return null;
+  final decision = decidePosition(
+    stats: player.attributes,
+    wish: player.preferredPosition,
+    philosophy: club.manager.philosophy,
+  );
   return CareerClub(
     club: club,
     placement: placement,
-    decision: decidePosition(
-      stats: player.attributes,
-      wish: player.preferredPosition,
-      philosophy: club.manager.philosophy,
-    ),
+    // The manager may have agreed to play the player where they want.
+    decision: player.life.playWish && !decision.honoured
+        ? decision.agreeToWish()
+        : decision,
   );
 }

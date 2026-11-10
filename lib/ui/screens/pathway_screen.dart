@@ -1,5 +1,6 @@
 import 'package:baller/data/career_store.dart';
 import 'package:baller/data/world_repository.dart';
+import 'package:baller/game/career/contracts.dart';
 import 'package:baller/game/career/pathway.dart';
 import 'package:baller/game/models/placement.dart';
 import 'package:baller/game/models/player.dart';
@@ -35,6 +36,16 @@ class _PathwayScreenState extends State<PathwayScreen> {
   Opportunity get _chosen => _pathway.options[_picked];
 
   /// The player attached to the chosen club, story from the start.
+  /// What [option]'s club offers (offers only; trials sign after the
+  /// verdict).
+  Contract _contractFor(Opportunity option) => offerContract(
+    player: widget.player,
+    club: option.club,
+    kind: _pathway.kind,
+    startSeason: widget.player.season.season,
+    agent: widget.player.life.agent,
+  );
+
   Player _placed({required bool signed}) => widget.player
       .withStatus(widget.player.status.restart())
       .withPlacement(
@@ -43,6 +54,7 @@ class _PathwayScreenState extends State<PathwayScreen> {
           clubId: _chosen.club.id,
           site: _chosen.site,
           signed: signed,
+          contract: signed ? _contractFor(_chosen) : null,
         ),
       );
 
@@ -91,6 +103,7 @@ class _PathwayScreenState extends State<PathwayScreen> {
             kind.offers
                 ? _OfferCard(
                     option: option,
+                    contract: _contractFor(option),
                     selected: i == _picked,
                     onTap: () => setState(() => _picked = i),
                   )
@@ -270,11 +283,13 @@ class _SelectableCard extends StatelessWidget {
 class _OfferCard extends StatelessWidget {
   const _OfferCard({
     required this.option,
+    required this.contract,
     required this.selected,
     required this.onTap,
   });
 
   final Opportunity option;
+  final Contract contract;
   final bool selected;
   final VoidCallback onTap;
 
@@ -350,6 +365,11 @@ class _OfferCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             option.detail,
+            style: AppText.inter(13, height: 1.4, color: p.sub),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            contractSummary(contract),
             style: AppText.inter(13, height: 1.4, color: p.sub),
           ),
           const SizedBox(height: 4),

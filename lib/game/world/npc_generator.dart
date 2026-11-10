@@ -67,9 +67,10 @@ class NpcGenerator {
     // Mental stats (Ego, Discipline, Teamwork, Composure, Stamina)
     final ego = _generateEgo(role, rating, rng);
     final discipline = _generateDiscipline(role, rating, ego, rng);
-    final teamwork = (110 - (ego * 0.6) + (rng.nextInt(15) - 7))
-        .round()
-        .clamp(15, 95);
+    final teamwork = (110 - (ego * 0.6) + (rng.nextInt(15) - 7)).round().clamp(
+      15,
+      95,
+    );
     final composure = (rating * 0.8 + (age - 17) * 0.6 + (rng.nextInt(11) - 5))
         .round()
         .clamp(25, 99);

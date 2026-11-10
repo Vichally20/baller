@@ -1,6 +1,5 @@
 import 'package:baller/game/match/ai/utility_ai/core_considerations.dart';
 import 'package:baller/game/match/ai/utility_ai/match_decision_context.dart';
-import 'package:baller/game/match/ai/utility_ai/pitch_zone.dart';
 import 'package:baller/game/match/ai/utility_ai/utility_action.dart';
 import 'package:baller/game/world/world_models.dart';
 
@@ -73,12 +72,10 @@ class PlayerBrain {
               weight: 2.2,
               label: 'Shooting skill',
             ),
-            CoreConsiderations.ego(
-              weight: 2.5,
-              label: 'Ego desire to score',
-            ),
+            CoreConsiderations.ego(weight: 2.5, label: 'Ego desire to score'),
             CoreConsiderations.tacticalCompliance(
-              tacticFactor: (ctx) => (ctx.tactics.shootMultiplier / 2.0).clamp(0.0, 1.0),
+              tacticFactor: (ctx) =>
+                  (ctx.tactics.shootMultiplier / 2.0).clamp(0.0, 1.0),
               baseWeight: 1.8,
               label: 'Coach shoot instruction',
             ),
@@ -99,12 +96,10 @@ class PlayerBrain {
             weight: 2.0,
             label: 'Dribbling skill',
           ),
-          CoreConsiderations.ego(
-            weight: 1.8,
-            label: 'Ego 1-on-1 confidence',
-          ),
+          CoreConsiderations.ego(weight: 1.8, label: 'Ego 1-on-1 confidence'),
           CoreConsiderations.tacticalCompliance(
-            tacticFactor: (ctx) => (ctx.tactics.dribbleMultiplier / 2.0).clamp(0.0, 1.0),
+            tacticFactor: (ctx) =>
+                (ctx.tactics.dribbleMultiplier / 2.0).clamp(0.0, 1.0),
             baseWeight: 1.4,
             label: 'Coach dribble instruction',
           ),
@@ -133,7 +128,8 @@ class PlayerBrain {
               label: 'Passing skill',
             ),
             CoreConsiderations.tacticalCompliance(
-              tacticFactor: (ctx) => (ctx.tactics.passMultiplier / 2.0).clamp(0.0, 1.0),
+              tacticFactor: (ctx) =>
+                  (ctx.tactics.passMultiplier / 2.0).clamp(0.0, 1.0),
               baseWeight: 2.0,
               label: 'Coach pass instruction',
             ),

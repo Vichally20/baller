@@ -1,7 +1,11 @@
 import 'package:baller/data/career_store.dart';
 import 'package:baller/data/story_repository.dart';
 import 'package:baller/data/world_repository.dart';
+import 'package:baller/game/career/calendar.dart';
+import 'package:baller/game/career/contracts.dart';
+import 'package:baller/game/career/life_actions.dart';
 import 'package:baller/game/career/pathway.dart';
+import 'package:baller/game/career/season.dart';
 import 'package:baller/game/models/attribute.dart';
 import 'package:baller/game/models/player.dart';
 import 'package:baller/game/story/career_status.dart';
@@ -9,11 +13,14 @@ import 'package:baller/game/story/story_content.dart';
 import 'package:baller/game/story/story_engine.dart';
 import 'package:baller/game/world/league_countries.dart';
 import 'package:baller/game/world/player_value.dart';
+import 'package:baller/game/world/world_models.dart';
 import 'package:baller/ui/screens/club_screen.dart';
 import 'package:baller/ui/screens/leagues_screen.dart';
-import 'package:baller/ui/screens/match_screen.dart';
+import 'package:baller/ui/screens/life_screen.dart';
+import 'package:baller/ui/screens/lineup_screen.dart';
 import 'package:baller/ui/screens/pathway_screen.dart';
 import 'package:baller/ui/screens/scenario_screen.dart';
+import 'package:baller/ui/screens/season_screen.dart';
 import 'package:baller/ui/screens/signing_screen.dart';
 import 'package:baller/ui/screens/talent_glossary_screen.dart';
 import 'package:baller/ui/theme/app_theme.dart';
@@ -53,7 +60,8 @@ class _CareerScreenState extends State<CareerScreen> {
         event: event,
         items: content.items,
       ),
-      MatchEvent() => MatchScreen(
+      // The line-ups first; kicking off from there plays the match.
+      MatchEvent() => LineupScreen(
         player: _player,
         slot: widget.slot,
         event: event,
@@ -62,6 +70,17 @@ class _CareerScreenState extends State<CareerScreen> {
     await Navigator.of(context)
         .push(MaterialPageRoute<void>(builder: (_) => screen));
     // The event screen saved any progress; pick it up.
+    final saved = (await const CareerStore().loadSlots())[widget.slot];
+    if (saved != null && mounted) setState(() => _player = saved);
+  }
+
+  Future<void> _openLife(bool inSeason) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            LifeScreen(player: _player, slot: widget.slot, inSeason: inSeason),
+      ),
+    );
     final saved = (await const CareerStore().loadSlots())[widget.slot];
     if (saved != null && mounted) setState(() => _player = saved);
   }
@@ -81,13 +100,13 @@ class _CareerScreenState extends State<CareerScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           final player = _player;
-          final club = careerClubOf(
-            player,
-            WorldRepository.forSeed(player.worldSeed),
-          );
+          final world = WorldRepository.forSeed(player.worldSeed);
+          final club = careerClubOf(player, world);
           final schedule = buildSchedule(content, player);
           final index = player.status.eventIndex;
           final next = index < schedule.length ? schedule[index] : null;
+          // Season mode starts once the written story runs out.
+          final season = seasonFor(player, world, player.season);
           final Widget main;
           if (club == null) {
             // A career from before pathways (or with a lost club).
@@ -112,32 +131,94 @@ class _CareerScreenState extends State<CareerScreen> {
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => SigningScreen(
-                    player: player.withPlacement(club.placement.sign()),
+                    // The club's contract offer comes with the verdict.
+                    player: player.withPlacement(
+                      club.placement.sign(
+                        offerContract(
+                          player: player,
+                          club: club.club,
+                          kind: club.placement.kind,
+                          startSeason: player.season.season,
+                          agent: player.life.agent,
+                        ),
+                      ),
+                    ),
                     slot: widget.slot,
                     reason: SigningReason.trialVerdict,
                   ),
                 ),
               ),
             );
-          } else if (next == null) {
-            main = const _ToBeContinued();
-          } else {
+          } else if (next != null) {
             main = _UpNext(
               event: next,
               cycle: cycleOf(schedule, index),
+              resume: player.match?.key == matchKey(player, next),
               onPlay: () => _play(next, content),
             );
+          } else if (season != null && !season.isOver) {
+            final round = seasonRound(content, player, season);
+            final at = player.season.scenesPlayed.clamp(0, round.length - 1);
+            main = _UpNext(
+              event: round[at],
+              cycle: (events: round, position: at),
+              resume: player.match?.key == matchKey(player, round[at]),
+              onPlay: () => _play(round[at], content),
+            );
+          } else if (season != null) {
+            final n = season.progress.season;
+            // Summer: wages, a year older, and any agreed move.
+            final summer = endOfSeason(player, world);
+            final aged = summer.growth;
+            final age = aged.attributes.age;
+            final move = summer.newClub;
+            main = _ActionCard(
+              caps: 'SEASON $n OVER',
+              title: 'You finished ${ordinal(season.position)}',
+              text:
+                  '${season.sideName(season.club)} ended season $n in '
+                  '${ordinal(season.position)} place in the '
+                  '${season.leagueName}. Over the summer you turn $age'
+                  '${aged.isEmpty ? '.' : ': ${aged.describe()}.'}'
+                  '${move == null ? '' : ' You join ${move.name}.'}',
+              action: 'Start season ${n + 1}',
+              onPressed: () async {
+                final next = summer.player;
+                await const CareerStore().save(widget.slot, next);
+                if (mounted) setState(() => _player = next);
+              },
+            );
+          } else {
+            main = const _ToBeContinued();
           }
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              _Header(player: player, chapter: next?.chapter.title),
+              _Header(
+                player: player,
+                chapter:
+                    next?.chapter.title ??
+                    (season == null
+                        ? null
+                        : 'Season ${season.progress.season}'),
+              ),
               const SizedBox(height: 16),
               main,
               if (club != null) ...[
                 const SizedBox(height: 16),
                 _ClubCard(club: club),
               ],
+              if (season != null && next == null) ...[
+                const SizedBox(height: 16),
+                _SeasonCard(season: season),
+              ],
+              const SizedBox(height: 16),
+              _LifeCard(
+                player: player,
+                world: world,
+                inSeason: season != null && next == null,
+                onOpen: () => _openLife(season != null && next == null),
+              ),
               const SizedBox(height: 16),
               _StatusCard(status: _player.status),
               const SizedBox(height: 16),
@@ -197,11 +278,15 @@ class _UpNext extends StatelessWidget {
     required this.event,
     required this.cycle,
     required this.onPlay,
+    this.resume = false,
   });
 
   final StoryEvent event;
   final ({List<StoryEvent> events, int position}) cycle;
   final VoidCallback onPlay;
+
+  /// The match was started and left: carry on where it stopped.
+  final bool resume;
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +299,7 @@ class _UpNext extends StatelessWidget {
       MatchEvent(:final match) => (
         match.title,
         'vs ${match.opponent}',
-        'Play match',
+        resume ? 'Resume match' : 'Play match',
       ),
     };
     return HeroCard(
@@ -409,6 +494,113 @@ class _ClubCard extends StatelessWidget {
   }
 }
 
+/// League position and record, with the full table a tap away.
+class _SeasonCard extends StatelessWidget {
+  const _SeasonCard({required this.season});
+
+  final Season season;
+
+  @override
+  Widget build(BuildContext context) {
+    final row = season.table.firstWhere((r) => r.club.id == season.club.id);
+    final played = season.progress.round;
+    return SoftCard(
+      child: Row(
+        children: [
+          const IconDisc(icon: Icons.leaderboard_outlined, size: 44),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  played == 0
+                      ? season.leagueName
+                      : '${ordinal(season.position)} · ${row.points} pts',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.manrope(18, weight: 600),
+                ),
+                Text(
+                  played == 0
+                      ? 'Season ${season.progress.season} · not started'
+                      : 'W${row.won} D${row.drawn} L${row.lost} · '
+                            '$played of ${season.rounds.length} played',
+                  style: AppText.inter(13, color: AppColors.muted),
+                ),
+              ],
+            ),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => SeasonScreen(season: season),
+              ),
+            ),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              textStyle: AppText.inter(14, weight: 600),
+            ),
+            child: const Text('Table'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The date, money and the next payday, with the player screen a tap away.
+class _LifeCard extends StatelessWidget {
+  const _LifeCard({
+    required this.player,
+    required this.world,
+    required this.inSeason,
+    required this.onOpen,
+  });
+
+  final Player player;
+  final World world;
+  final bool inSeason;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final date = today(player.season, inSeason: inSeason);
+    final income = monthlyIncome(player, world);
+    return SoftCard(
+      onTap: onOpen,
+      child: Row(
+        children: [
+          const IconDisc(icon: Icons.person_outline, size: 44),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Your life', style: AppText.manrope(18, weight: 600)),
+                Text(
+                  formatDate(date),
+                  style: AppText.inter(13, color: AppColors.muted),
+                ),
+                Text(
+                  income.total > 0
+                      ? '${formatWage(player.status.money)} · '
+                            '+${formatWage(income.total)} on '
+                            '${formatDate(payday(date))}'
+                      : formatWage(player.status.money),
+                  style: AppText.inter(13, color: AppColors.muted),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: AppColors.muted),
+        ],
+      ),
+    );
+  }
+}
+
 class _ToBeContinued extends StatelessWidget {
   const _ToBeContinued();
 
@@ -457,6 +649,12 @@ class _WorldCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final leagues = LeagueCountry.values.length;
+    // Valued at your club once you've signed; unattached before that.
+    final career = careerClubOf(
+      player,
+      WorldRepository.forSeed(player.worldSeed),
+    );
+    final club = career != null && career.placement.signed ? career.club : null;
     return SoftCard(
       child: Row(
         children: [
@@ -469,7 +667,7 @@ class _WorldCard extends StatelessWidget {
                 Text('The world', style: AppText.manrope(18, weight: 600)),
                 Text(
                   '$leagues leagues · your value '
-                  '${formatEuros(playerMarketValue(player))}',
+                  '${formatEuros(playerMarketValue(player, club: club))}',
                   style: AppText.inter(13, color: AppColors.muted),
                 ),
               ],
@@ -512,7 +710,10 @@ class _StatusCard extends StatelessWidget {
                 color: AppColors.muted,
               ),
               const SizedBox(width: 6),
-              Text('${status.money}', style: AppText.inter(16, weight: 600)),
+              Text(
+                formatWage(status.money),
+                style: AppText.inter(16, weight: 600),
+              ),
             ],
           ),
           const SizedBox(height: 8),

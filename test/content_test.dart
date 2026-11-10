@@ -4,6 +4,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:baller/game/career/season.dart';
 import 'package:baller/game/models/placement.dart';
 import 'package:baller/game/story/story_content.dart';
 import 'package:baller/game/story/story_engine.dart';
@@ -31,6 +32,7 @@ const _placeholders = {
   '{club}',
   '{manager}',
   '{position}',
+  '{opponent}',
 };
 
 void main() {
@@ -82,11 +84,22 @@ void main() {
     expect((schedule[0] as ScenarioEvent).scenario.id, 'arrival');
   });
 
+  test('season mode has a pool of scenes for every player', () {
+    final pool = [
+      for (final c in _loadFromDisk().chapters)
+        if (c.pool && c.when.pathways == null && c.when.tiers == null)
+          ...c.scenarios,
+    ];
+    expect(pool.length, greaterThanOrEqualTo(scenesPerRound * 3));
+  });
+
   test('every pathway has a chapter to play', () {
     final content = _loadFromDisk();
     for (final kind in PathwayKind.values) {
       expect(
-        content.chapters.any((c) => c.when.pathways?.any(kind.matches) ?? true),
+        content.chapters.any(
+          (c) => !c.pool && (c.when.pathways?.any(kind.matches) ?? true),
+        ),
         isTrue,
         reason: kind.id,
       );

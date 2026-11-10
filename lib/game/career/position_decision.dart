@@ -11,6 +11,7 @@ class PositionDecision {
     required this.gap,
     required this.philosophy,
     this.second,
+    this.agreed = false,
   });
 
   /// Where the manager plays the player.
@@ -31,8 +32,27 @@ class PositionDecision {
 
   bool get honoured => position == wish;
 
+  /// The player asked, and the manager agreed to play them where they
+  /// want.
+  final bool agreed;
+
+  /// The manager's decision after agreeing to the player's request.
+  PositionDecision agreeToWish() => PositionDecision(
+    position: wish,
+    wish: wish,
+    best: best,
+    gap: gap,
+    philosophy: philosophy,
+    second: second == wish ? (wish == best ? null : best) : second,
+    agreed: true,
+  );
+
   /// One or two sentences explaining the decision.
   String get reason {
+    if (agreed && wish != best) {
+      return 'You asked the manager for a run at ${wish.label}, and they '
+          'agreed.';
+    }
     if (wish == best) {
       return '${wish.label} is what you asked for and where you fit best.';
     }

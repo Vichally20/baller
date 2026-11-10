@@ -34,7 +34,28 @@ Each scenario shows its text and 2–4 choices. The player picks one, and the ga
 - `id` is a short name with no spaces. Each chapter needs a unique one.
 - `matches` names the match after each pair of scenarios, in order. It's optional: unnamed matches are just called "Match".
 - `when` (optional) says which players get the chapter. See [Who plays a chapter](#who-plays-a-chapter).
+- `pool` (optional, `true` or `false`) makes the chapter a pool of repeatable scenes for the league season. See [Season scenes](#season-scenes).
 - `verdict` (optional, `true` or `false`) is for trial chapters. When the chapter ends, the trial club gives its verdict and the player signs. "The Trial" uses it.
+
+### Season scenes
+
+When a player has played every chapter written for them and has signed for a club, the career carries on as a **league season**: 38 rounds against the other clubs in their division, each round **2 scenes, then the match**.
+
+Those scenes come from **pool chapters**: chapters with `"pool": true`. They are not played in order. The game shuffles every pool scene meant for the player once per season and deals them out two per round, so a scene only comes back after the player has seen the whole pool.
+
+```json
+{
+  "id": "season_pool",
+  "title": "Matchweek",
+  "pool": true,
+  "scenarios": [ ...scenes that make sense any week of a season... ]
+}
+```
+
+- Write pool scenes so they work any week: no "first day", no story that needs an earlier scene. `{opponent}` names that week's opponent.
+- A pool chapter can have `when` like any chapter, e.g. a pool only for academy players (`"pathway": ["academy_abroad", "academy_home", "academy_trials"]`).
+- Pool chapters can't have a `verdict`, and their `matches` are ignored: the season decides the matches.
+- The more pool scenes there are, the less often they repeat. `chapters/pool_season.json` has the first eight.
 
 ### Who plays a chapter
 
@@ -123,6 +144,7 @@ These are replaced with the player's details:
 | `{club}` | the player's club ("Ashbury Rovers"), or the academy while on an academy trial ("Ashbury Rovers Academy Lagos") |
 | `{manager}` | the club manager's name |
 | `{position}` | where the manager plays the player ("Winger") |
+| `{opponent}` | the next league opponent ("Ashbury Rovers U18"); outside the season, "the opposition" |
 
 `{club}`, `{manager}` and `{position}` need a club, which every player has once they've chosen their pathway.
 

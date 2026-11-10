@@ -87,10 +87,8 @@ class CoachBrain {
         label: 'Not already in Control',
       ),
       BTAction<CoachSnapshot>(
-        (s) => s.tactics.setControlMode(
-          s.minute,
-          reason: 'Starved of possession',
-        ),
+        (s) =>
+            s.tactics.setControlMode(s.minute, reason: 'Starved of possession'),
         label: 'Switch to Control tactic',
       ),
     ]),
@@ -131,7 +129,8 @@ class CoachBrain {
         s.tactics.attackIntensity = 0.35;
         s.tactics.tempo = 'Slow';
         s.tactics.lastAdjustmentMinute = s.minute;
-        s.tactics.lastAdjustmentReason = 'Managing energy with comfortable lead';
+        s.tactics.lastAdjustmentReason =
+            'Managing energy with comfortable lead';
       }, label: 'Conserve energy'),
     ]),
 
@@ -141,4 +140,3 @@ class CoachBrain {
     }, label: 'Maintain system'),
   ]);
 }
-

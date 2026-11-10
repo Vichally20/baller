@@ -277,9 +277,13 @@ class SquadPlayer {
       'attributes': final Map<String, Object?> attrMap,
       'foot': final String footName,
     }) {
-      final nat = Nationality.values.where((n) => n.name == natName).firstOrNull;
+      final nat = Nationality.values
+          .where((n) => n.name == natName)
+          .firstOrNull;
       if (nat == null) return null;
-      final role = SquadRole.values.where((r) => r.code == roleCode).firstOrNull;
+      final role = SquadRole.values
+          .where((r) => r.code == roleCode)
+          .firstOrNull;
       if (role == null) return null;
       final foot = Foot.values.where((f) => f.name == footName).firstOrNull;
       if (foot == null) return null;
@@ -461,10 +465,7 @@ class World {
   }
 
   /// Transfers a player from their current club to [toClubId].
-  bool transferPlayer({
-    required String playerId,
-    required String toClubId,
-  }) {
+  bool transferPlayer({required String playerId, required String toClubId}) {
     final targetClub = clubById(toClubId);
     if (targetClub == null) return false;
 
@@ -492,7 +493,9 @@ class World {
     for (final modified in state.modifiedPlayers.values) {
       final club = clubById(modified.clubId);
       if (club != null) {
-        final existing = club.squad.where((p) => p.id == modified.id).firstOrNull;
+        final existing = club.squad
+            .where((p) => p.id == modified.id)
+            .firstOrNull;
         if (existing != null) {
           club.updatePlayer(modified);
         } else {

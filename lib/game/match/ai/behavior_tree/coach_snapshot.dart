@@ -29,4 +29,3 @@ class CoachSnapshot {
   /// Average stamina of the active players on pitch (0–100).
   final double teamStaminaAverage;
 }
-
