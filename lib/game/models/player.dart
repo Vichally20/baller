@@ -28,6 +28,7 @@ class Player {
     this.xp = const {},
     this.life = Life.start,
     this.match,
+    this.talentMilestones,
   }) : assert(
          innateTalent == null ||
              innateTalent.archetype == TalentArchetype.innate,
@@ -72,6 +73,11 @@ class Player {
   /// A match started but not finished (resumed when the player comes back).
   final MatchProgress? match;
 
+  /// Talent-score milestones already rolled for a new logic talent
+  /// (career/talent_learning.dart). Null in older saves: then the ones the
+  /// player has already passed count as rolled.
+  final Set<int>? talentMilestones;
+
   double get talentScore =>
       TalentTier.score(attributes, hasInnate: innateTalent != null);
 
@@ -98,6 +104,7 @@ class Player {
     Life? life,
     MatchProgress? match,
     bool clearMatch = false,
+    Set<int>? talentMilestones,
   }) => Player(
     identity: identity ?? this.identity,
     attributes: attributes ?? this.attributes,
@@ -112,5 +119,6 @@ class Player {
     xp: xp ?? this.xp,
     life: life ?? this.life,
     match: clearMatch ? null : (match ?? this.match),
+    talentMilestones: talentMilestones ?? this.talentMilestones,
   );
 }

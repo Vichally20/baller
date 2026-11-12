@@ -50,7 +50,7 @@ void _playMany(
 void main() {
   test('clearing their corner is a clearance, never a shot at their goal', () {
     var clearances = 0;
-    _playMany(300, (before, action, sim, _) {
+    _playMany(600, (before, action, sim, _) {
       if (before != PlayState.cornerAgainst || action != MatchAction.shoot) {
         return;
       }
@@ -106,7 +106,7 @@ void main() {
   });
 
   test('goals: about 2.5 a match with sensible play, from both sides', () {
-    final trialist = placedPlayer(offers: false);
+    final trialist = youthTrialist();
     final player = trialist.withPlacement(trialist.placement!.sign());
     final world = WorldRepository.forSeed(player.worldSeed);
     var goals = 0;
@@ -156,7 +156,7 @@ void main() {
 
   group('matchups', () {
     test('trialists play trial football around their own level', () {
-      final player = placedPlayer(offers: false);
+      final player = youthTrialist();
       final world = WorldRepository.forSeed(player.worldSeed);
       final matchup = matchupFor(
         player,

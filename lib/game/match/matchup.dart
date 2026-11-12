@@ -63,10 +63,8 @@ Matchup? matchupFor(
       : (fixture.home.id == club.id ? fixture.away : fixture.home);
 
   final placement = career.placement;
-  final senior =
-      placement.signed &&
-      (placement.kind == PathwayKind.seniorHome ||
-          placement.kind == PathwayKind.seniorAbroad);
+  // Trials (before signing) and youth football use generated sides.
+  final senior = placement.signed && !playsYouthFootball(player, placement);
   final position = career.decision.position;
   if (senior) {
     return Matchup(home: club, away: rival, userPosition: position);

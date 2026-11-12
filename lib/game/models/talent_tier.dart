@@ -31,9 +31,9 @@ enum TalentTier {
   final String scoutNote;
 
   /// Lowest talent score for [average], [rare] and [genius].
-  static const int averageFrom = 50;
-  static const int rareFrom = 59;
-  static const int geniusFrom = 64;
+  static const int averageFrom = 52;
+  static const int rareFrom = 62;
+  static const int geniusFrom = 68;
 
   /// Added to the score when the player has an Innate talent.
   static const int innateBonus = 3;

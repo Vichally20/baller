@@ -12,6 +12,7 @@ import 'package:baller/ui/theme/app_theme.dart';
 import 'package:baller/ui/widgets/alabaster.dart';
 import 'package:baller/ui/widgets/club_crest.dart';
 import 'package:baller/ui/widgets/stars.dart';
+import 'package:baller/game/world/world_models.dart';
 import 'package:flutter/material.dart';
 
 enum SigningReason {
@@ -98,7 +99,7 @@ class _SigningScreenState extends State<SigningScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        '${club.country.label} · Division ${club.division} · '
+                        '${club.country.label} · ${League.nameOf(club.country, club.division)} · '
                         '${club.style.label}',
                         style: AppText.inter(13, color: AppColors.onDarkSoft),
                       ),

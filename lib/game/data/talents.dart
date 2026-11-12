@@ -2,15 +2,21 @@ import 'package:baller/game/models/talent.dart';
 
 // --- Rules ------------------------------------------------------------------
 
-/// Max talents a player can hold of each archetype.
+/// Max talents a player can hold of each archetype. Logic talents are
+/// capped at [usualLogicTalents] until the talent score reaches
+/// [thirdLogicFrom] (see career/talent_learning.dart).
 const int maxInnateTalents = 1;
-const int maxLogicTalents = 2;
+const int maxLogicTalents = 3;
+const int usualLogicTalents = 2;
+
+/// Talent score from which a third logic talent can be learned.
+const int thirdLogicFrom = 70;
 
 /// Chance a new player is born with an innate talent.
 const double innateTalentChance = 0.30;
 
-/// New players start with 0..this many logic talents (each count equally
-/// likely); more can be learned during the career, up to [maxLogicTalents].
+/// The most logic talents a new player starts with (by tier: Poor 0,
+/// Average 1 or 2, Rare and Genius 2).
 const int maxStartingLogicTalents = 2;
 
 // --- Talents ----------------------------------------------------------------

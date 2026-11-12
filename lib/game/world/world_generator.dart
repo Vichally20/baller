@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:baller/game/world/league_countries.dart';
 import 'package:baller/game/world/npc_generator.dart';
 import 'package:baller/game/world/player_value.dart';
+import 'package:baller/game/world/real_clubs.dart';
 import 'package:baller/game/world/world_models.dart';
 
 /// Builds every league from one seed: the same seed always gives the same
@@ -72,6 +73,10 @@ League _league(LeagueCountry country, Random rng) {
       towns.add(town);
       names.add(name);
       patterns[pattern] = (patterns[pattern] ?? 0) + 1;
+      // The made-up name above is still drawn so the random sequence (and
+      // so every squad and manager in existing saves) stays the same; the
+      // club itself takes its real name.
+      (name, town) = realClub(country, d, rank);
 
       final stars = starsFor(d, rank);
       final manager = _manager(country, rng);

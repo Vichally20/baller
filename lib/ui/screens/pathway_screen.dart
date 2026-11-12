@@ -9,6 +9,7 @@ import 'package:baller/ui/screens/signing_screen.dart';
 import 'package:baller/ui/theme/app_theme.dart';
 import 'package:baller/ui/widgets/alabaster.dart';
 import 'package:baller/ui/widgets/club_crest.dart';
+import 'package:baller/game/world/world_models.dart';
 import 'package:flutter/material.dart';
 
 /// The clubs that want the player (offers) or will look at them (trials).
@@ -331,7 +332,7 @@ class _OfferCard extends StatelessWidget {
                       style: AppText.inter(16, weight: 600, color: p.fg),
                     ),
                     Text(
-                      '${club.country.label} · Division ${club.division}',
+                      '${club.country.label} · ${League.nameOf(club.country, club.division)}',
                       style: AppText.inter(13, color: p.sub),
                     ),
                   ],

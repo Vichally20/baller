@@ -42,7 +42,12 @@ void main() {
       );
 
       // Must NEVER show defender-specific prompts
-      expect(prompt.contains('Their winger collects on the halfway line and runs straight at you'), isFalse);
+      expect(
+        prompt.contains(
+          'Their winger collects on the halfway line and runs straight at you',
+        ),
+        isFalse,
+      );
       expect(prompt.contains('Their striker is on your shoulder'), isFalse);
     });
 
@@ -82,7 +87,8 @@ void main() {
       final homeClub = world.clubs.first;
       final awayClub = world.clubs.elementAt(1);
 
-      final midfielder = testPlayer(30).copyWith(preferredPosition: Position.cm);
+      final midfielder = testPlayer(30)
+          .copyWith(preferredPosition: Position.cm);
 
       final sim = MatchSim(
         shirtName: midfielder.identity.shirtName,

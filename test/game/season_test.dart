@@ -5,9 +5,11 @@ import 'package:baller/data/world_repository.dart';
 import 'package:baller/game/career/season.dart';
 import 'package:baller/game/models/placement.dart';
 import 'package:baller/game/models/player.dart';
+import 'package:baller/game/models/player_attributes.dart';
 import 'package:baller/game/save/player_codec.dart';
 import 'package:baller/game/story/story_content.dart';
 import 'package:baller/game/story/story_engine.dart';
+import 'package:baller/game/world/world_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../test_helpers.dart';
@@ -96,7 +98,7 @@ void main() {
 
   group('the season', () {
     test('only for signed players', () {
-      final trialist = placedPlayer(offers: false); // not signed yet
+      final trialist = youthTrialist(); // not signed yet
       final world = WorldRepository.forSeed(trialist.worldSeed);
       expect(seasonFor(trialist, world, SeasonProgress.first), isNull);
       final signed = trialist.withPlacement(trialist.placement!.sign());
@@ -110,7 +112,7 @@ void main() {
         SeasonProgress.first,
       )!;
       expect(senior.youth, isFalse);
-      expect(senior.leagueName, contains('Division 2'));
+      expect(senior.leagueName, League.nameOf(senior.club.country, 2));
     });
 
     test('the table counts your results and simulates the rest', () {
@@ -254,5 +256,31 @@ void main() {
     expect(back.season.scenesPlayed, 1);
     final legacy = codec.toJson(player)..remove('season');
     expect(codec.fromJson(legacy)!.season.round, 0);
+  });
+
+  test('only players 18 or under play youth football', () {
+    final base = placedPlayer(offers: true);
+    final world = WorldRepository.forSeed(base.worldSeed);
+    final club = world.clubs.firstWhere((c) => c.hasAcademy);
+    final academy = base.withPlacement(
+      Placement(kind: PathwayKind.academyHome, clubId: club.id, signed: true),
+    );
+    PlayerAttributes aged(int age) => academy.attributes.copyWith(age: age);
+
+    // An academy player at 18 is in the U18 league; at 19 they move up.
+    final at18 = academy.copyWith(attributes: aged(18));
+    expect(seasonFor(at18, world, at18.season)!.youth, isTrue);
+    final at19 = academy.copyWith(attributes: aged(19));
+    final senior = seasonFor(at19, world, at19.season)!;
+    expect(senior.youth, isFalse);
+    expect(senior.leagueName, League.nameOf(club.country, club.division));
+
+    // A 25-year-old who signed after a trial plays senior football.
+    final trialist = placedPlayer(offers: false);
+    final signed = trialist
+        .withPlacement(trialist.placement!.sign())
+        .copyWith(attributes: trialist.attributes.copyWith(age: 25));
+    expect(signed.placement!.kind.offers, isFalse);
+    expect(seasonFor(signed, world, signed.season)!.youth, isFalse);
   });
 }

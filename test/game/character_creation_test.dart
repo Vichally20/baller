@@ -99,11 +99,12 @@ void main() {
 
   group('talent tier', () {
     test('thresholds', () {
-      expect(TalentTier.of(49.9), TalentTier.poor);
-      expect(TalentTier.of(50), TalentTier.average);
-      expect(TalentTier.of(58.9), TalentTier.average);
-      expect(TalentTier.of(59), TalentTier.rare);
-      expect(TalentTier.of(64), TalentTier.genius);
+      expect(TalentTier.of(51.9), TalentTier.poor);
+      expect(TalentTier.of(52), TalentTier.average);
+      expect(TalentTier.of(61.9), TalentTier.average);
+      expect(TalentTier.of(62), TalentTier.rare);
+      expect(TalentTier.of(67.9), TalentTier.rare);
+      expect(TalentTier.of(68), TalentTier.genius);
     });
 
     test('an Innate talent adds 3 to the score', () {

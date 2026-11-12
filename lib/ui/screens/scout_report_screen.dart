@@ -75,10 +75,18 @@ class _TierCard extends StatelessWidget {
 
   /// Short label and score range per tier, lowest first.
   static const _scale = [
-    (TalentTier.poor, 'Poor', 'under 50'),
-    (TalentTier.average, 'Average', '50–58'),
-    (TalentTier.rare, 'Rare', '59–63'),
-    (TalentTier.genius, 'Genius', '64+'),
+    (TalentTier.poor, 'Poor', 'under ${TalentTier.averageFrom}'),
+    (
+      TalentTier.average,
+      'Average',
+      '${TalentTier.averageFrom}–${TalentTier.rareFrom - 1}',
+    ),
+    (
+      TalentTier.rare,
+      'Rare',
+      '${TalentTier.rareFrom}–${TalentTier.geniusFrom - 1}',
+    ),
+    (TalentTier.genius, 'Genius', '${TalentTier.geniusFrom}+'),
   ];
 
   @override

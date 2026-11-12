@@ -11,7 +11,10 @@ class WheelSpec {
 }
 
 // PLACEHOLDER skill values — tune once the stat mechanics are decided.
-const List<int> _skillSegments = [35, 40, 45, 50, 55, 60, 65, 75];
+// Every step from 35 to 80. With the country bonus, the 30% Innate chance
+// and the tier cutoffs (Average 52, Rare 62, Genius 68) about 8% of players
+// are Genius (docs/career-design.md §3).
+const List<int> _skillSegments = [35, 40, 45, 50, 55, 60, 65, 70, 75, 80];
 
 /// Stat wheels in the order they are spun.
 const List<WheelSpec> defaultWheels = [

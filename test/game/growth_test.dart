@@ -141,21 +141,26 @@ void main() {
   });
 
   group('ageing', () {
-    test('up to 21: +1 to every skill', () {
+    test('up to 21: +2 to every skill', () {
       final g = ageOneYear(_player(age: 18));
       expect(g.attributes.age, 19);
-      expect(g.changes.values.toSet(), {1});
+      expect(g.changes.values.toSet(), {2});
       expect(g.changes, hasLength(6));
     });
 
-    test('22 to 29: no change; 30+: pace and physical fade', () {
-      expect(ageOneYear(_player(age: 25)).isEmpty, isTrue);
-      final thirty = ageOneYear(_player(age: 30));
-      expect(thirty.changes, {Attribute.pace: -1, Attribute.physical: -1});
-      expect(thirty.describe(), '−1 Pace, −1 Physical');
+    test('22 to 29: +1; 30 to 32: no change; 33+: four skills fade', () {
+      final mid = ageOneYear(_player(age: 25));
+      expect(mid.changes.values.toSet(), {1});
+      expect(mid.changes, hasLength(6));
+      expect(ageOneYear(_player(age: 30)).isEmpty, isTrue);
       final old = ageOneYear(_player(age: 33));
-      expect(old.changes[Attribute.pace], -2);
-      expect(old.changes[Attribute.shot], -1);
+      expect(old.changes, {
+        Attribute.pace: -1,
+        Attribute.physical: -1,
+        Attribute.shot: -1,
+        Attribute.dribble: -1,
+      });
+      expect(old.describe(), '−1 Pace, −1 Physical, −1 Shot, −1 Dribble');
     });
   });
 

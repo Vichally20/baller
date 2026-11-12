@@ -61,7 +61,7 @@ class _LineupScreenState extends State<LineupScreen> {
     random: Random(0),
   );
 
-  Future<void> _kickOff() async {
+  Future<void> _kickOff({bool simulate = false}) async {
     final finished = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => MatchScreen(
@@ -70,6 +70,7 @@ class _LineupScreenState extends State<LineupScreen> {
           event: widget.event,
           matchup: _matchup,
           seed: widget.seed,
+          simulate: simulate,
         ),
       ),
     );
@@ -109,12 +110,29 @@ class _LineupScreenState extends State<LineupScreen> {
           ],
         ),
       ),
-      bottom: PillButton(
-        label: widget.player.match?.key == matchKey(widget.player, widget.event)
-            ? 'Resume match'
-            : 'Kick off',
-        trailingArrow: true,
-        onPressed: _kickOff,
+      bottom: Row(
+        children: [
+          Expanded(
+            child: PillButton(
+              label: 'Simulate',
+              leading: Icons.fast_forward_rounded,
+              secondary: true,
+              onPressed: () => _kickOff(simulate: true),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: PillButton(
+              label:
+                  widget.player.match?.key ==
+                      matchKey(widget.player, widget.event)
+                  ? 'Resume'
+                  : 'Kick off',
+              trailingArrow: true,
+              onPressed: _kickOff,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -20,7 +20,11 @@ void main() {
       [for (final c in again.clubs) c.squad.first.rating],
       [for (final c in world.clubs) c.squad.first.rating],
     );
-    expect([for (final c in other.clubs) c.name], isNot(names));
+    // Clubs are real, so a new seed changes the people, not the names.
+    expect([for (final c in other.clubs) c.name], names);
+    expect([
+      for (final c in other.clubs) c.squad.first.name,
+    ], isNot([for (final c in world.clubs) c.squad.first.name]));
   });
 
   test('8 leagues × 3 divisions × 20 clubs, 38-game seasons', () {
@@ -35,35 +39,14 @@ void main() {
     expect(world.clubs, hasLength(8 * 3 * 20));
   });
 
-  test('club names are unique, varied and readable', () {
-    for (final seed in [2026, 1, 99, 4242]) {
-      for (final league in generateWorld(seed).leagues) {
-        final names = [
-          for (final d in league.divisions) ...d.map((c) => c.name),
-        ];
-        expect(
-          names.toSet(),
-          hasLength(names.length),
-          reason: league.country.label,
-        );
-        for (final division in league.divisions) {
-          // No naming pattern ("… Wanderers", "Real …") over the limit.
-          final patterns = <String, int>{};
-          for (final c in division) {
-            expect(c.name, contains(c.town));
-            final p = c.name.replaceFirst(c.town, '…');
-            patterns[p] = (patterns[p] ?? 0) + 1;
-          }
-          expect(
-            patterns.values.every((n) => n <= maxPatternUses),
-            isTrue,
-            reason: '${league.country.label}: $patterns',
-          );
-        }
-        for (final n in names) {
-          expect(RegExp(r'(.)\1\1').hasMatch(n), isFalse, reason: n);
-        }
-      }
+  test('club names are unique in every league', () {
+    for (final league in world.leagues) {
+      final names = [for (final d in league.divisions) ...d.map((c) => c.name)];
+      expect(
+        names.toSet(),
+        hasLength(names.length),
+        reason: league.country.label,
+      );
     }
   });
 

@@ -63,7 +63,7 @@ enum LeagueCountry {
   spain(
     'Spain',
     Nationality.spanish,
-    1.3,
+    1.4,
     [
       'Val',
       'Sierra',
@@ -93,7 +93,7 @@ enum LeagueCountry {
   germany(
     'Germany',
     Nationality.german,
-    1.2,
+    1.3,
     [
       'Rhein',
       'Ost',
@@ -153,7 +153,7 @@ enum LeagueCountry {
   italy(
     'Italy',
     Nationality.italian,
-    1.2,
+    1.25,
     [
       'Monte',
       'Castel',

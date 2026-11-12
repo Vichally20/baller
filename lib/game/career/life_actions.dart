@@ -4,6 +4,8 @@ import 'package:baller/game/career/calendar.dart';
 import 'package:baller/game/career/contracts.dart';
 import 'package:baller/game/career/growth.dart';
 import 'package:baller/game/career/pathway.dart';
+import 'package:baller/game/career/talent_learning.dart';
+import 'package:baller/game/models/talent.dart';
 import 'package:baller/game/models/attribute.dart';
 import 'package:baller/game/models/life.dart';
 import 'package:baller/game/models/placement.dart';
@@ -150,7 +152,12 @@ Player payWages(Player player, World world, DateTime from, DateTime to) {
 
 /// What changes over the summer, ready to show before it happens.
 class Summer {
-  const Summer({required this.player, required this.growth, this.newClub});
+  const Summer({
+    required this.player,
+    required this.growth,
+    this.newClub,
+    this.learned = const [],
+  });
 
   /// The player at the start of the next season.
   final Player player;
@@ -160,6 +167,9 @@ class Summer {
 
   /// The club they move to, if a transfer was agreed.
   final Club? newClub;
+
+  /// Logic talents learned as the summer's growth crossed a milestone.
+  final List<Talent> learned;
 }
 
 /// The end of a season: wages for the summer, a year older, any agreed
@@ -174,9 +184,11 @@ Summer endOfSeason(Player player, World world) {
     preSeason(season + 1),
   );
   final aged = ageOneYear(paid);
-  var next = paid
-      .copyWith(attributes: aged.attributes)
-      .withSeason(paid.season.nextSeason());
+  final (grown, learned) = learnTalents(
+    paid,
+    paid.copyWith(attributes: aged.attributes),
+  );
+  var next = grown.withSeason(paid.season.nextSeason());
   Club? newClub;
   final transfer = player.life.transfer;
   if (transfer != null) {
@@ -196,7 +208,7 @@ Summer endOfSeason(Player player, World world) {
       );
     }
   }
-  return Summer(player: next, growth: aged, newClub: newClub);
+  return Summer(player: next, growth: aged, newClub: newClub, learned: learned);
 }
 
 /// Wages due by a league matchday: everything since the last matchday (or

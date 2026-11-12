@@ -59,6 +59,7 @@ class PlayerCodec {
     'xp': {
       for (final MapEntry(:key, :value) in player.xp.entries) key.name: value,
     },
+    'milestones': ?player.talentMilestones?.toList(),
   };
 
   Player? fromJson(Object? json) {
@@ -205,6 +206,11 @@ class PlayerCodec {
         xp: Map.unmodifiable(xp),
         life: life,
         match: match,
+        // Missing in older saves (then the ones already passed count).
+        talentMilestones: switch (json['milestones']) {
+          final List<Object?> raw => Set.unmodifiable(raw.whereType<int>()),
+          _ => null,
+        },
       );
     }
     return null;

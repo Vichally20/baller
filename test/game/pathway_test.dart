@@ -17,7 +17,7 @@ import '../test_helpers.dart';
 Location _at(String id) => startingLocations.firstWhere((l) => l.id == id);
 
 /// Flat stats at [level] (age [age]), so the tier is easy to pick:
-/// 66 → genius, 60 → rare, 54 → average, 44 → poor.
+/// 70 → genius, 64 → rare, 54 → average, 44 → poor.
 Player _player({
   required int level,
   required int age,
@@ -49,10 +49,10 @@ void main() {
     final cases = [
       // (level, age, location, expected)
       (66, 16, 'nigeria', PathwayKind.academyAbroad),
-      (60, 15, 'ghana', PathwayKind.academyAbroad),
-      (60, 16, 'spain', PathwayKind.academyHome),
+      (64, 15, 'ghana', PathwayKind.academyAbroad),
+      (64, 16, 'spain', PathwayKind.academyHome),
       (66, 17, 'ghana', PathwayKind.seniorAbroad),
-      (60, 22, 'japan', PathwayKind.seniorHome),
+      (64, 22, 'japan', PathwayKind.seniorHome),
       (54, 16, 'nigeria', PathwayKind.academyTrials),
       (44, 25, 'ghana', PathwayKind.academyTrials),
       (54, 15, 'england', PathwayKind.homeTrials),
@@ -70,7 +70,7 @@ void main() {
 
   group('who comes for you', () {
     test('African prodigies: academies from different European countries', () {
-      final pathway = pathwayFor(_player(level: 60, age: 16), world);
+      final pathway = pathwayFor(_player(level: 64, age: 16), world);
       expect(pathway.kind, PathwayKind.academyAbroad);
       expect(pathway.options, hasLength(3)); // rare: 3
       for (final o in pathway.options) {
@@ -83,9 +83,9 @@ void main() {
     });
 
     test('genius gets four offers; France\'s wide net adds one', () {
-      expect(pathwayFor(_player(level: 66, age: 16), world).options.length, 4);
+      expect(pathwayFor(_player(level: 70, age: 16), world).options.length, 4);
       final paris = pathwayFor(
-        _player(level: 66, age: 16, location: 'france'),
+        _player(level: 70, age: 16, location: 'france'),
         world,
       );
       expect(paris.kind, PathwayKind.academyHome);
@@ -98,7 +98,7 @@ void main() {
 
     test('senior offers: genius Div 1 at home, rare Div 2 abroad', () {
       final home = pathwayFor(
-        _player(level: 66, age: 20, location: 'italy'),
+        _player(level: 70, age: 20, location: 'italy'),
         world,
       );
       expect(home.options.every((o) => o.club.division == 1), isTrue);
@@ -106,7 +106,7 @@ void main() {
         home.options.every((o) => o.club.country == LeagueCountry.italy),
         isTrue,
       );
-      final abroad = pathwayFor(_player(level: 60, age: 20), world);
+      final abroad = pathwayFor(_player(level: 64, age: 20), world);
       expect(abroad.kind, PathwayKind.seniorAbroad);
       expect(abroad.options.every((o) => o.club.division == 2), isTrue);
     });

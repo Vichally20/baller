@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:baller/game/career/growth.dart';
 import 'package:baller/game/career/pathway.dart';
 import 'package:baller/game/career/season.dart';
+import 'package:baller/game/career/talent_learning.dart';
 import 'package:baller/game/models/player.dart';
 import 'package:baller/game/story/story_content.dart';
 
@@ -184,19 +185,26 @@ Player afterScene(Player player, StoryEvent event, Effects effects) {
 }
 
 /// The player after a match: any [growth] from the match applied, then a
-/// league result recorded, or the story moved on.
+/// league result (with its [scorers]) recorded, or the story moved on.
 Player afterMatch(
   Player player,
   StoryEvent event, {
   required int goalsFor,
   required int goalsAgainst,
   Growth? growth,
+  List<RoundGoal> scorers = const [],
 }) {
+  // Better stats can cross a milestone and teach a logic talent.
   final trained = growth == null
       ? player
-      : player.copyWith(attributes: growth.attributes, xp: growth.xp);
+      : learnTalents(
+          player,
+          player.copyWith(attributes: growth.attributes, xp: growth.xp),
+        ).$1;
   return event.isSeason
-      ? trained.withSeason(trained.season.record(goalsFor, goalsAgainst))
+      ? trained.withSeason(
+          trained.season.record(goalsFor, goalsAgainst, scorers: scorers),
+        )
       : trained.withStatus(trained.status.advance());
 }
 

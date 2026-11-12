@@ -141,7 +141,10 @@ void main() {
 
     test('too many or duplicate logic talents', () {
       json['innate'] = null;
+      // Three are allowed (earned from talent score 70); four never.
       json['logic'] = ['meta_vision', 'the_ghost', 'the_scalpel'];
+      expect(codec.fromJson(json), isNotNull);
+      json['logic'] = ['meta_vision', 'the_ghost', 'the_scalpel', 'the_impact'];
       expect(codec.fromJson(json), isNull);
       json['logic'] = ['meta_vision', 'meta_vision'];
       expect(codec.fromJson(json), isNull);

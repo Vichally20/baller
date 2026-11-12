@@ -70,12 +70,13 @@ class _TalentScreenState extends State<TalentScreen> {
             null => _EmptySlot(
               title: '—',
               body:
-                  'You start with 0–$maxStartingLogicTalents. '
-                  'Up to $maxLogicTalents can be learned.',
+                  'How many depends on your talent: Poor 0, Average 1 '
+                  '(maybe 2), Rare and Genius 2. Grow into the next level '
+                  'and you may learn another; a third at $thirdLogicFrom+.',
             ),
             StartingTalents(logic: []) => const _EmptySlot(
               title: 'None yet',
-              body: 'Logic talents can be learned during your career.',
+              body: 'Reach Average level as you grow and you may learn one.',
             ),
             StartingTalents(:final logic) => SoftCard(
               padding: const EdgeInsets.symmetric(vertical: 8),

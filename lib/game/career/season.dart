@@ -1,9 +1,9 @@
 import 'dart:math';
 
 import 'package:baller/game/career/pathway.dart';
-import 'package:baller/game/models/placement.dart';
 import 'package:baller/game/models/player.dart';
 import 'package:baller/game/models/season_progress.dart';
+import 'package:baller/game/world/league_countries.dart';
 import 'package:baller/game/world/world_models.dart';
 
 export 'package:baller/game/models/season_progress.dart';
@@ -140,7 +140,7 @@ class Season {
 
   String get leagueName => youth
       ? '${club.country.label} U18 League'
-      : '${club.country.label} Division ${club.division}';
+      : League.nameOf(club.country, club.division);
 
   bool get isOver => progress.round >= rounds.length;
 
@@ -156,31 +156,60 @@ class Season {
   String sideName(Club c) => youth ? '${c.name} U18' : c.name;
 }
 
-/// The season for a signed player, or null before they've signed.
-Season? seasonFor(Player player, World world, SeasonProgress progress) {
-  final career = careerClubOf(player, world);
-  if (career == null || !career.placement.signed) return null;
-  final club = career.club;
-  final kind = career.placement.kind;
-  final youth =
-      !(kind == PathwayKind.seniorHome || kind == PathwayKind.seniorAbroad);
-  final clubs = world.leagues
-      .firstWhere((l) => l.country == club.country)
-      .divisions[club.division - 1];
-  final seed = player.worldSeed ^ (progress.season * 104729);
-  final rounds = buildFixtures(clubs, Random(seed));
+/// The seed a career's season [season] is played from.
+int seasonSeed(Player player, int season) =>
+    player.worldSeed ^ (season * 104729);
 
+/// The seed of a division's season. The player's own senior division uses
+/// [base] itself; every other division (and the senior side of a youth
+/// player's league) gets its own.
+int divisionSeed(
+  int base,
+  LeagueCountry country,
+  int division, {
+  bool players = false,
+}) => players
+    ? base
+    : base ^ ((country.index + 1) * 7368787 + division * 2750159);
+
+/// The seed of one simulated game.
+int fixtureSeed(int divisionSeed, int round, int index) =>
+    divisionSeed ^ (round * 1009 + index * 31 + 7);
+
+/// A division's season after [roundsPlayed] rounds: fixtures, scores and
+/// table. Games involving [club] take their scores from [results]
+/// (club's goals first); the rest are simulated from [seed].
+class DivisionSeason {
+  DivisionSeason._(this.rounds, this.scores, this.table);
+
+  final List<List<Fixture>> rounds;
+
+  /// Per round, per fixture: the score (home goals first), or null if not
+  /// played yet.
+  final List<List<(int, int)?>> scores;
+
+  /// Best first: points, then goal difference, then goals scored.
+  final List<LeagueRow> table;
+}
+
+DivisionSeason simulateDivision(
+  List<Club> clubs,
+  int seed,
+  int roundsPlayed, {
+  Club? club,
+  List<(int, int)> results = const [],
+}) {
+  final rounds = buildFixtures(clubs, Random(seed));
   final rows = {for (final c in clubs) c.id: LeagueRow(c)};
   final scores = [
     for (final round in rounds) List<(int, int)?>.filled(round.length, null),
   ];
-  for (var r = 0; r < progress.round && r < rounds.length; r++) {
+  for (var r = 0; r < roundsPlayed && r < rounds.length; r++) {
     for (final (i, f) in rounds[r].indexed) {
-      final (h, a) = f.involves(club)
-          ? (f.home.id == club.id
-                ? progress.results[r]
-                : (progress.results[r].$2, progress.results[r].$1))
-          : simulateScore(f, Random(seed ^ (r * 1009 + i * 31 + 7)));
+      final mine = club != null && f.involves(club) && r < results.length;
+      final (h, a) = mine
+          ? (f.home.id == club.id ? results[r] : (results[r].$2, results[r].$1))
+          : simulateScore(f, Random(fixtureSeed(seed, r, i)));
       scores[r][i] = (h, a);
       rows[f.home.id]!.add(h, a);
       rows[f.away.id]!.add(a, h);
@@ -194,13 +223,31 @@ Season? seasonFor(Player player, World world, SeasonProgress progress) {
       if (byGd != 0) return byGd;
       return y.goalsFor.compareTo(x.goalsFor);
     });
+  return DivisionSeason._(rounds, scores, table);
+}
 
+/// The season for a signed player, or null before they've signed.
+Season? seasonFor(Player player, World world, SeasonProgress progress) {
+  final career = careerClubOf(player, world);
+  if (career == null || !career.placement.signed) return null;
+  final club = career.club;
+  final youth = playsYouthFootball(player, career.placement);
+  final clubs = world.leagues
+      .firstWhere((l) => l.country == club.country)
+      .divisions[club.division - 1];
+  final played = simulateDivision(
+    clubs,
+    seasonSeed(player, progress.season),
+    progress.round,
+    club: club,
+    results: progress.results,
+  );
   return Season._(
     progress: progress,
     club: club,
     youth: youth,
-    rounds: rounds,
-    table: table,
-    scores: scores,
+    rounds: played.rounds,
+    table: played.table,
+    scores: played.scores,
   );
 }

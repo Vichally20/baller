@@ -4,6 +4,7 @@ import 'package:baller/game/world/world_models.dart';
 import 'package:baller/ui/screens/club_screen.dart';
 import 'package:baller/ui/theme/app_theme.dart';
 import 'package:baller/ui/widgets/alabaster.dart';
+import 'package:baller/ui/widgets/league_picker.dart';
 import 'package:flutter/material.dart';
 
 /// Every league in the world: pick a country and a division.
@@ -41,29 +42,12 @@ class _LeaguesScreenState extends State<LeaguesScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            height: 64,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-              children: [
-                for (final league in widget.world.leagues) ...[
-                  _CountryChip(
-                    label: league.country.label,
-                    selected: league.country == _country,
-                    onTap: () => setState(() => _country = league.country),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-            child: _DivisionTabs(
-              selected: _division,
-              onSelect: (d) => setState(() => _division = d),
-            ),
+          LeaguePicker(
+            countries: [for (final l in widget.world.leagues) l.country],
+            country: _country,
+            division: _division,
+            onCountry: (c) => setState(() => _country = c),
+            onDivision: (d) => setState(() => _division = d),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 10, 24, 10),
@@ -100,107 +84,6 @@ class _LeaguesScreenState extends State<LeaguesScreen> {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CountryChip extends StatelessWidget {
-  const _CountryChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      selected: selected,
-      button: true,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          boxShadow: selected ? null : AppColors.softShadow,
-        ),
-        child: Material(
-          color: selected ? AppColors.charcoal : AppColors.surface,
-          shape: const StadiumBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Center(
-                child: Text(
-                  label,
-                  style: AppText.inter(
-                    14,
-                    weight: 600,
-                    color: selected ? Colors.white : AppColors.ink,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DivisionTabs extends StatelessWidget {
-  const _DivisionTabs({required this.selected, required this.onSelect});
-
-  final int selected;
-  final ValueChanged<int> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppColors.chip,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        children: [
-          for (var d = 0; d < League.divisionCount; d++)
-            Expanded(
-              child: Semantics(
-                selected: d == selected,
-                button: true,
-                child: Material(
-                  color: d == selected
-                      ? AppColors.charcoal
-                      : Colors.transparent,
-                  shape: const StadiumBorder(),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () => onSelect(d),
-                    child: SizedBox(
-                      height: 44,
-                      child: Center(
-                        child: Text(
-                          'Division ${d + 1}',
-                          style: AppText.inter(
-                            14,
-                            weight: 600,
-                            color: d == selected
-                                ? Colors.white
-                                : AppColors.mutedStrong,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );

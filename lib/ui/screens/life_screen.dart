@@ -574,7 +574,7 @@ class _OfferTile extends StatelessWidget {
                         style: AppText.inter(16, weight: 600, color: fg),
                       ),
                       Text(
-                        '${club.country.label} · Division ${club.division} · '
+                        '${club.country.label} · ${League.nameOf(club.country, club.division)} · '
                         'Fit ${offer.fit}%',
                         style: AppText.inter(13, color: sub),
                       ),

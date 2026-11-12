@@ -77,7 +77,7 @@ class _ClubHero extends StatelessWidget {
                       style: AppText.display(28, color: Colors.white),
                     ),
                     Text(
-                      '${club.country.label} · Division ${club.division}',
+                      '${club.country.label} · ${League.nameOf(club.country, club.division)}',
                       style: AppText.inter(13, color: AppColors.onDarkSoft),
                     ),
                   ],

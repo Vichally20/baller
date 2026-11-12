@@ -8,6 +8,7 @@ import 'package:baller/game/match/ai/utility_ai/match_decision_context.dart';
 import 'package:baller/game/match/ai/utility_ai/pitch_zone.dart';
 import 'package:baller/game/match/ai/utility_ai/player_brain.dart';
 import 'package:baller/game/match/ai/utility_ai/utility_action.dart';
+import 'package:baller/game/match/goal_credit.dart';
 import 'package:baller/game/match/lineup.dart';
 import 'package:baller/game/match/resolution/contest_outcome.dart';
 import 'package:baller/game/match/resolution/momentum.dart';
@@ -370,6 +371,22 @@ String _switchNotice(PlayState next) => switch (next) {
   PlayState.cornerAgainst => 'Corner to them · In box',
 };
 
+/// One goal: who scored it and who set it up. The user is
+/// [MatchSim.userId] on the home side.
+class MatchGoal {
+  const MatchGoal({
+    required this.side,
+    required this.minute,
+    required this.scorer,
+    this.assist,
+  });
+
+  final Side side;
+  final int minute;
+  final SquadPlayer scorer;
+  final SquadPlayer? assist;
+}
+
 class CommentaryLine {
   const CommentaryLine(
     this.minute,
@@ -417,7 +434,9 @@ class MatchSim {
     this.detailedCommentary = true,
     Position? userPosition,
     Random? random,
-  }) : _rng = random ?? Random() {
+    int creditSeed = 0,
+  }) : _rng = random ?? Random(),
+       _credit = Random(creditSeed) {
     _minute = _nextGap();
     _feed.add(const CommentaryLine(0, 'Kick-off.'));
 
@@ -495,6 +514,13 @@ class MatchSim {
   final bool detailedCommentary;
   final Random _rng;
 
+  /// Picks who gets credit for goals. Kept apart from [_rng] so crediting
+  /// never changes how a match plays out.
+  final Random _credit;
+
+  /// The user's id in the lineups and in [goals].
+  static const String userId = 'user-player';
+
   late final SquadPlayer _userPlayer;
   late final List<SquadPlayer> homeSquad;
   late final List<SquadPlayer> awaySquad;
@@ -528,10 +554,21 @@ class MatchSim {
   int _buildUp = 0;
   bool _secondHalf = false;
 
+  /// The user's last move was a pass that kept the ball: a goal by their
+  /// side in the play straight after is their assist.
+  bool _userSetUp = false;
+
   /// When the first chance after the break falls (the clock keeps the
   /// rhythm it had, so half-time costs no chances).
   int _resumeAt = halfTime + 1;
   final List<CommentaryLine> _feed = [];
+  final List<MatchGoal> _goals = [];
+
+  /// Every goal so far, in order, with scorer and assist.
+  List<MatchGoal> get goals => List.unmodifiable(_goals);
+
+  /// The user in this match (their side is always home).
+  SquadPlayer get userPlayer => _userPlayer;
 
   int get minute => _minute;
   PlayState get state => _state;
@@ -606,6 +643,21 @@ class MatchSim {
     final goal = outcome.goal;
     if (goal == Side.home) _home++;
     if (goal == Side.away) _away++;
+    if (goal == Side.home) {
+      // Only Shoot and Nod score for you; a teammate may have set it up.
+      _goals.add(
+        MatchGoal(
+          side: Side.home,
+          minute: _minute,
+          scorer: _userPlayer,
+          assist: _credit.nextDouble() < 0.65
+              ? _creditPick(homeLineup, assistWeight)
+              : null,
+        ),
+      );
+    } else if (goal == Side.away) {
+      _creditGoal(Side.away, awayLineup);
+    }
     final changed = outcome.next != _state;
     // Build-up that keeps the ball moves the attack closer to goal; losing
     // it, or any other move, starts again.
@@ -661,7 +713,13 @@ class MatchSim {
       _feed.add(const CommentaryLine(fullTime, 'Full time.'));
     } else {
       _minute = next;
+      _userSetUp =
+          action == MatchAction.pass &&
+          goal == null &&
+          (outcome.next == PlayState.attack ||
+              outcome.next == PlayState.cornerFor);
       final npcNotice = _simulateNpcPhase();
+      _userSetUp = false;
       _notice = [?notice, ?npcNotice, "Next chance $_minute'"].join(' · ');
     }
     return outcome;
@@ -687,6 +745,36 @@ class MatchSim {
 
   String _goalNotice(Side scorer) =>
       '${scorer == Side.home ? 'GOAL' : 'Conceded'} · $_home–$_away';
+
+  /// A goal by [side] that the commentary doesn't pin on anyone: scorer
+  /// and assist drawn from [lineup] by role and skill.
+  void _creditGoal(Side side, List<SquadPlayer> lineup) {
+    final scorer = _creditPick(lineup, scorerWeight);
+    if (scorer == null) return;
+    _goals.add(
+      MatchGoal(
+        side: side,
+        minute: _minute,
+        scorer: scorer,
+        assist: _credit.nextDouble() < 0.7
+            ? _creditPick(lineup, assistWeight, except: scorer)
+            : null,
+      ),
+    );
+  }
+
+  SquadPlayer? _creditPick(
+    List<SquadPlayer> lineup,
+    double Function(SquadPlayer) weight, {
+    SquadPlayer? except,
+  }) => weightedPick(
+    [
+      for (final p in lineup)
+        if (p != except && p.id != userId) p,
+    ],
+    weight,
+    _credit,
+  );
 
   void _evaluateCoaches() {
     final prevHomeTactic = homeTactics.tacticName;
@@ -990,7 +1078,7 @@ class MatchSim {
     }
 
     /// A shot by [shooter]: a goal changes the score and restarts play.
-    String? shot(SquadPlayer shooter, PitchZone zone) {
+    String? shot(SquadPlayer shooter, PitchZone zone, {SquadPlayer? setUp}) {
       final outcome = StatContestResolver.resolveShot(
         shooter: shooter,
         goalkeeper: _keeper(opposing),
@@ -1009,6 +1097,16 @@ class MatchSim {
       } else {
         _away++;
       }
+      _goals.add(
+        MatchGoal(
+          side: scorer,
+          minute: _minute,
+          scorer: shooter,
+          assist: scorer == Side.home && _userSetUp
+              ? _userPlayer
+              : (setUp == shooter ? null : setUp),
+        ),
+      );
       _feed.add(
         CommentaryLine(
           _minute,
@@ -1026,13 +1124,17 @@ class MatchSim {
 
     /// A move that comes off can end in a chance for one of the forwards:
     /// more often for the stronger side.
-    String? maybeChance(ContestOutcome build) {
+    String? maybeChance(ContestOutcome build, {SquadPlayer? passer}) {
       final cameOff =
           build.result == ContestResult.passCompleted ||
           build.result == ContestResult.dribbleSuccess;
       if (!cameOff) return null;
       if (_rng.nextDouble() >= _chanceRate(lineup, opposing)) return null;
-      return shot(_pick(lineup, _attackers), PitchZone.opponentBox);
+      return shot(
+        _pick(lineup, _attackers),
+        PitchZone.opponentBox,
+        setUp: passer,
+      );
     }
 
     switch (decision.type) {
@@ -1051,7 +1153,7 @@ class MatchSim {
           rng: _rng,
         );
         recordNpcOutcome(pass);
-        return maybeChance(pass);
+        return maybeChance(pass, passer: carrier);
 
       case CandidateActionType.dribble:
         final dribble = StatContestResolver.resolveDribble(

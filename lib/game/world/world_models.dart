@@ -6,6 +6,7 @@ import 'package:baller/game/models/position.dart';
 import 'package:baller/game/models/talent.dart';
 import 'package:baller/game/models/talent_tier.dart';
 import 'package:baller/game/world/league_countries.dart';
+import 'package:baller/game/world/real_clubs.dart';
 import 'package:baller/game/world/world_save_state.dart';
 
 /// How a club plays. Clubs come for players whose best stats suit their style.
@@ -431,6 +432,14 @@ class League {
 
   static const int divisionCount = 3;
   static const int clubsPerDivision = 20;
+
+  /// "Premier League" for England's division 1 (1-based [division]).
+  static String nameOf(LeagueCountry country, int division) =>
+      divisionNames(country)[division - 1].$1;
+
+  /// A short name for tabs ("Segunda").
+  static String shortNameOf(LeagueCountry country, int division) =>
+      divisionNames(country)[division - 1].$2;
 
   /// Home and away against every other club.
   static const int matchesPerSeason = (clubsPerDivision - 1) * 2;

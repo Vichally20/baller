@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:baller/game/career/talent_learning.dart';
 import 'package:baller/game/data/talents.dart';
 import 'package:baller/game/data/wheels.dart';
 import 'package:baller/game/models/attribute.dart';
@@ -9,6 +10,7 @@ import 'package:baller/game/models/player_attributes.dart';
 import 'package:baller/game/models/player_identity.dart';
 import 'package:baller/game/models/position.dart';
 import 'package:baller/game/models/talent.dart';
+import 'package:baller/game/models/talent_tier.dart';
 import 'package:baller/game/story/career_status.dart';
 import 'package:baller/game/story/story_content.dart';
 
@@ -97,9 +99,10 @@ class CharacterCreation {
 
   StartingTalents? get startingTalents => _talents;
 
-  /// Rolls [innateChance] for one innate talent, then gives 0 to
-  /// [maxStartingLogicTalents] distinct logic talents (each count equally
-  /// likely). Italy's Tactical brain perk guarantees at least one.
+  /// Rolls [innateChance] for one innate talent, then gives logic talents
+  /// by talent tier (Poor 0, Average 1 or 2, Rare and Genius 2; see
+  /// career/talent_learning.dart). Italy's Tactical brain perk guarantees
+  /// at least one.
   StartingTalents drawTalents() {
     if (!statsComplete) throw StateError('Spin every stat wheel first');
     if (_talents != null) throw StateError('Talents already drawn');
@@ -116,7 +119,10 @@ class CharacterCreation {
     final innate = innatePool.isNotEmpty && _rng.nextDouble() < innateChance
         ? innatePool[_rng.nextInt(innatePool.length)]
         : null;
-    var logicCount = _rng.nextInt(maxStartingLogicTalents + 1);
+    final tier = TalentTier.of(
+      TalentTier.score(finalAttributes(), hasInnate: innate != null),
+    );
+    var logicCount = startingLogicCount(tier, _rng);
     if (location.perk == CountryPerk.tacticalBrain) {
       logicCount = max(logicCount, 1);
     }
@@ -158,6 +164,10 @@ class CharacterCreation {
       worldSeed: _worldSeed,
       innateTalent: talents.innate,
       logicTalents: talents.logic,
+      // Milestones already passed at the start don't give a talent.
+      talentMilestones: milestonesReached(
+        TalentTier.score(finalAttributes(), hasInnate: talents.innate != null),
+      ),
       status: CareerStatus.initial.apply(startingPerkEffects(location.perk)),
     );
   }

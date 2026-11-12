@@ -3,6 +3,7 @@ import 'package:baller/data/story_repository.dart';
 import 'package:baller/data/world_repository.dart';
 import 'package:baller/game/career/calendar.dart';
 import 'package:baller/game/career/contracts.dart';
+import 'package:baller/game/career/league_stats.dart';
 import 'package:baller/game/career/life_actions.dart';
 import 'package:baller/game/career/pathway.dart';
 import 'package:baller/game/career/season.dart';
@@ -15,11 +16,13 @@ import 'package:baller/game/world/league_countries.dart';
 import 'package:baller/game/world/player_value.dart';
 import 'package:baller/game/world/world_models.dart';
 import 'package:baller/ui/screens/club_screen.dart';
+import 'package:baller/ui/screens/league_stats_screen.dart';
 import 'package:baller/ui/screens/leagues_screen.dart';
 import 'package:baller/ui/screens/life_screen.dart';
 import 'package:baller/ui/screens/lineup_screen.dart';
 import 'package:baller/ui/screens/pathway_screen.dart';
 import 'package:baller/ui/screens/scenario_screen.dart';
+import 'package:baller/ui/screens/season_awards_screen.dart';
 import 'package:baller/ui/screens/season_screen.dart';
 import 'package:baller/ui/screens/signing_screen.dart';
 import 'package:baller/ui/screens/talent_glossary_screen.dart';
@@ -180,13 +183,23 @@ class _CareerScreenState extends State<CareerScreen> {
                   '${ordinal(season.position)} place in the '
                   '${season.leagueName}. Over the summer you turn $age'
                   '${aged.isEmpty ? '.' : ': ${aged.describe()}.'}'
-                  '${move == null ? '' : ' You join ${move.name}.'}',
-              action: 'Start season ${n + 1}',
-              onPressed: () async {
-                final next = summer.player;
-                await const CareerStore().save(widget.slot, next);
-                if (mounted) setState(() => _player = next);
-              },
+                  '${move == null ? '' : ' You join ${move.name}.'}'
+                  '${summer.learned.isEmpty ? '' : ' You learned ${summer.learned.map((t) => t.name).join(' and ')}.'}',
+              action: 'See the awards',
+              // The awards first; starting the next season is from there.
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => SeasonAwardsScreen(
+                    player: player,
+                    continueLabel: 'Start season ${n + 1}',
+                    onContinue: () async {
+                      final next = summer.player;
+                      await const CareerStore().save(widget.slot, next);
+                      if (mounted) setState(() => _player = next);
+                    },
+                  ),
+                ),
+              ),
             );
           } else {
             main = const _ToBeContinued();
@@ -210,7 +223,7 @@ class _CareerScreenState extends State<CareerScreen> {
               ],
               if (season != null && next == null) ...[
                 const SizedBox(height: 16),
-                _SeasonCard(season: season),
+                _SeasonCard(season: season, player: player),
               ],
               const SizedBox(height: 16),
               _LifeCard(
@@ -480,7 +493,7 @@ class _ClubCard extends StatelessWidget {
                   placement.signed
                       ? 'Plays you at ${decision.position.label}'
                             '${decision.honoured ? ', as you wanted' : ''}'
-                      : '${c.country.label} · Division ${c.division} club',
+                      : '${c.country.label} · ${League.nameOf(c.country, c.division)}',
                   style: AppText.inter(13, color: AppColors.muted),
                 ),
               ],
@@ -494,55 +507,100 @@ class _ClubCard extends StatelessWidget {
   }
 }
 
-/// League position and record, with the full table a tap away.
+/// League position, record and the player's goals, with the table and
+/// the league's top scorers a tap away.
 class _SeasonCard extends StatelessWidget {
-  const _SeasonCard({required this.season});
+  const _SeasonCard({required this.season, required this.player});
 
   final Season season;
+  final Player player;
 
   @override
   Widget build(BuildContext context) {
     final row = season.table.firstWhere((r) => r.club.id == season.club.id);
     final played = season.progress.round;
+    final you = yourSeason(season.progress);
+    final style = FilledButton.styleFrom(
+      minimumSize: const Size(0, 44),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      textStyle: AppText.inter(14, weight: 600),
+    );
     return SoftCard(
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const IconDisc(icon: Icons.leaderboard_outlined, size: 44),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  played == 0
-                      ? season.leagueName
-                      : '${ordinal(season.position)} · ${row.points} pts',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.manrope(18, weight: 600),
+          Row(
+            children: [
+              const IconDisc(icon: Icons.leaderboard_outlined, size: 44),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      played == 0
+                          ? season.leagueName
+                          : '${ordinal(season.position)} · ${row.points} pts',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.manrope(18, weight: 600),
+                    ),
+                    Text(
+                      played == 0
+                          ? 'Season ${season.progress.season} · not started'
+                          : 'W${row.won} D${row.drawn} L${row.lost} · '
+                                '$played of ${season.rounds.length} played',
+                      style: AppText.inter(13, color: AppColors.muted),
+                    ),
+                    if (played > 0)
+                      Text(
+                        'You: ${you.goals} goals · ${you.assists} assists',
+                        style: AppText.inter(13, color: AppColors.muted),
+                      ),
+                  ],
                 ),
-                Text(
-                  played == 0
-                      ? 'Season ${season.progress.season} · not started'
-                      : 'W${row.won} D${row.drawn} L${row.lost} · '
-                            '$played of ${season.rounds.length} played',
-                  style: AppText.inter(13, color: AppColors.muted),
-                ),
-              ],
-            ),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => SeasonScreen(season: season),
               ),
-            ),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(0, 44),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              textStyle: AppText.inter(14, weight: 600),
-            ),
-            child: const Text('Table'),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          SeasonScreen(season: season, player: player),
+                    ),
+                  ),
+                  style: style,
+                  child: const Text('Table'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => LeagueStatsScreen(
+                        player: player,
+                        initialCountry: season.club.country,
+                        initialDivision: season.club.division,
+                      ),
+                    ),
+                  ),
+                  style: style.copyWith(
+                    backgroundColor: const WidgetStatePropertyAll(
+                      AppColors.chip,
+                    ),
+                    foregroundColor: const WidgetStatePropertyAll(
+                      AppColors.ink,
+                    ),
+                  ),
+                  child: const Text('Top scorers'),
+                ),
+              ),
+            ],
           ),
         ],
       ),

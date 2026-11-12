@@ -21,8 +21,8 @@ Each country gives **+5 to one stat** and **one perk**. The bonuses are based on
 
 | Country | Identity | Stat | Perk |
 |---|---|---|---|
-| Nigeria | Street football | +5 Dribble | **Scouts' radar**: rare/genius under 17 get offers from European academies |
-| Ghana | Academy pipeline | +5 Pass | **Mentors**: start with +10 coach relationship; European academy route as Nigeria |
+| Nigeria | Street football | +5 Shot | **Scouts' radar**: rare/genius under 17 get offers from European academies |
+| Ghana | Academy pipeline | +5 Physical | **Mentors**: start with +10 coach relationship; European academy route as Nigeria |
 | England | Academy intensity | +5 Physical | **Big money**: wages and value ×1.25 |
 | Spain | Rondo culture | +5 Pass | **Technical schooling**: Pass/Dribble improve faster in training *(later)* |
 | Germany | Clear pathway | +5 Defence | **B-teams**: young players get more minutes |
@@ -38,12 +38,12 @@ Each country gives **+5 to one stat** and **one perk**. The bonuses are based on
 
 | Tier | Score | Share of players* | Meaning |
 |---|---|---|---|
-| **Genius** | 64+ | ~2–3% | Generational. Clubs fight over you. |
-| **Rare talent** | 59–63 | ~11% | Clearly special. Several clubs come calling. |
-| **Average** | 50–58 | ~60% | Decent. You earn your chance at trials. |
-| **Poor** | under 50 | ~25% | Raw. Open trials at small clubs, and a long road. |
+| **Genius** | 68+ | ~8% | Generational. Clubs fight over you. |
+| **Rare talent** | 62–67 | ~25% | Clearly special. Several clubs come calling. |
+| **Average** | 52–61 | ~55% | Decent. You earn your chance at trials. |
+| **Poor** | under 52 | ~12% | Raw. Open trials at small clubs, and a long road. |
 
-\*From the actual wheel odds (skills 35–75, 8 equal slots). The Innate bonus and country bonus push the shares slightly up.
+\*Exact odds from the wheels (skills 35, 40 … 75, 80: 10 equal slots), including the country's +5 and the 30% Innate chance. History: 2026-11-12 the top slot went from 75 to 80 (Genius 64+, ~7.5%); later that day 70 and 75 were added and the cutoffs moved from 50 / 59 / 64 to 52 / 62 / 68 to keep similar shares. NPCs use the same cutoffs.
 
 ## 4. Position
 
@@ -145,7 +145,7 @@ Each manager has a name, age, philosophy, favourite formation, youth trust (1–
 - **base**: €50k × 1.15^(rating − 50), so 50 → €50k, 60 → €202k, 70 → €818k, 80 → €3.3m, 90 → €13.4m
 - **age**: 15–19 ×1.5 · 20–23 ×1.2 · 24–27 ×1.0 · 28–30 ×0.8 · 31+ ×0.5
 - **tier**: Genius ×3 · Rare ×1.8 · Average ×1 · Poor ×0.6 (NPCs use the same tiers)
-- **league**: England 1.6 · Spain 1.3 · Germany 1.2 · Italy 1.2 · France 1.1 · Brazil 0.7 · Japan 0.6 · Argentina 0.6
+- **league**: England 1.6 · Spain 1.4 · Germany 1.3 · Italy 1.25 · France 1.1 · Brazil 0.7 · Japan 0.6 · Argentina 0.6
 - **division**: Div 1 ×1 · Div 2 ×0.45 · Div 3 ×0.2
 
 ## 9. Decisions (2026-11-09)
@@ -196,5 +196,29 @@ Each manager has a name, age, philosophy, favourite formation, youth trust (1–
    - **Levelling up:** a stat goes up by 1 when its XP reaches (stat − 20) × 10, so 350 at 55 and 550 at 75.
    - **Learning rate:** ×1.5 up to age 19, ×1.25 to 23, ×1 to 27, ×0.6 to 30, ×0.3 after that.
    - **Spain's Technical schooling:** ×1.5 for Pass and Dribble.
-   - **Each summer the player ages a year:** up to 21, +1 to every skill. From 22 to 29, no change. From 30 to 32, −1 Pace and −1 Physical. From 33, −2 Pace, −2 Physical, −1 Shot and −1 Dribble.
+   - **Each summer the player ages a year:** up to 21, +2 to every skill. From 22 to 29, +1. From 30 to 32, 0 Pace and 0 Physical. From 33, −1 Pace, −1 Physical, −1 Shot and −1 Dribble.
    - **Rough pace:** a young player gains about 8–10 points a season from matches, plus 6 in the summer.
+
+## 11. Match report, league stats and awards (built 2026-11-11, PROVISIONAL numbers)
+
+- **Match report** (after every match): the score with scorers and assists, your goals / assists / moves won, and XP per stat: moves won of moves tried, XP earned (10 per move won × age rate × Spain's perk), and a bar towards the next +1.
+- **Simulate**: "Simulate" on the line-ups plays the whole match; the ⏩ button in a match plays the rest (after a confirm). Your moves are picked for you, each as likely as the square of the stat it uses, and they earn XP like moves you choose.
+- **Who scores:** in the engine, your Shoot/Nod goals are yours (a teammate gets the assist 65% of the time); goals between your chances go to the shooter, with the passer credited when a pass set it up. Simulated league games give each goal to one of the club's first-choice XI, weighted by role (ST 7, W 6, AM 5, CM 2.5, CB 1.2, FB/DM 1, GK 0) × (Shot/60)^1.5; 70% have an assist, by role (AM/W 6, CM 4, ST 3, FB 2.5, DM 1.5, CB 0.6) × (Pass/60)^1.5. Golden Boot winners come out around 24–36 goals.
+- **Every senior division** is simulated to the round you've reached, so any league's stats can be viewed. The first-choice XI plays every game; the keeper gets a clean sheet when his side concedes nothing.
+- **Awards** (shown when the season ends, before "Start season N+1"; also viewable mid-season as "the race so far"): Champions, Golden Boot (goals), Playmaker (assists), Golden Glove (keepers' clean sheets), Player of the Season and Young Player of the Season (21 or under). Ties go to fewer games, then the better-rated player.
+- **Player of the Season score:** 3 × goals + 2.5 × assists + 2 × clean sheets (GK, CB, FB only) + rating + 0.75 × (clubs + 1 − finish).
+- **Youth players:** youth sides are generated fresh each match, so U18 leagues have no individual awards; the awards screen shows your own U18 season numbers and the senior league's awards.
+
+## 12. Real names and youth football (2026-11-12)
+
+- **Real leagues and clubs** (a local game): every country's divisions use their real names (Premier League / Championship / League One, LaLiga / Segunda / Primera Federación, Bundesliga / 2. Bundesliga / 3. Liga, Ligue 1 / Ligue 2 / National, Serie A / B / C, Série A / B / C, Liga Profesional / Primera Nacional / Primera B, J1 / J2 / J3) and real clubs, strongest first (lib/game/world/real_clubs.dart). Divisions stay at 20 clubs, so the Bundesliga, Ligue 1 and their second tiers (18 in reality) take the next clubs in line. Players and managers stay fictional.
+- **Who plays youth football:** academy and trial signings play in the U18 league only while 18 or younger; from 19 they play for the club's senior side in its division. Senior contracts always play senior football. (Before this, a trial signing stayed in the U18 league at any age.)
+
+## 13. Logic talents by tier, and weighted XP (2026-11-12, PROVISIONAL numbers)
+
+- **Starting logic talents** (by the tier at creation, Innate bonus included): Poor 0 · Average 1 (a 1-in-3 chance of 2) · Rare 2 · Genius 2. Italy's Tactical brain still guarantees at least 1.
+- **Learning one:** the first time the talent score reaches **52** (Average level), **62** (Rare level) and **70**, there's a **50% chance** to learn a random logic talent you don't have. Each milestone is rolled once, ever, after a match or over the summer. Milestones already passed when the player is created don't count.
+- **How many you can hold:** 2, or **3 once the talent score is 70+**.
+- **XP per move that comes off** (before the age and country multipliers): goal 30 · assist 25 · tackle won (Tackle or Slide) 20 · clearance (Shoot or Nod at their corner) 20 · anything else 10.
+- **Assists:** if your last move of a chance is a pass that keeps the ball and a teammate scores in the play straight after, the assist is yours.
+- **Effect on growth:** about 55% more match XP than before (a young player's season goes from roughly 8–10 points to 12–15 from matches).

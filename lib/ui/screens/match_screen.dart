@@ -5,11 +5,14 @@ import 'package:baller/data/career_store.dart';
 import 'package:baller/data/world_repository.dart';
 import 'package:baller/game/career/growth.dart';
 import 'package:baller/game/career/life_actions.dart';
+import 'package:baller/game/match/autopilot.dart';
 import 'package:baller/game/match/match_engine.dart';
 import 'package:baller/game/match/matchup.dart';
 import 'package:baller/game/models/match_progress.dart';
 import 'package:baller/game/models/player.dart';
+import 'package:baller/game/models/season_progress.dart';
 import 'package:baller/game/story/story_engine.dart';
+import 'package:baller/ui/screens/match_report_screen.dart';
 import 'package:baller/ui/theme/app_theme.dart';
 import 'package:baller/ui/widgets/alabaster.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +28,7 @@ class MatchScreen extends StatefulWidget {
     required this.event,
     this.matchup,
     this.seed,
+    this.simulate = false,
   });
 
   final Player player;
@@ -37,6 +41,9 @@ class MatchScreen extends StatefulWidget {
   /// Fixes the match's random seed (tests). Otherwise a new match gets a
   /// fresh seed, and a match left half-way keeps its saved one.
   final int? seed;
+
+  /// Plays the whole match at once, picking the player's moves for them.
+  final bool simulate;
 
   @override
   State<MatchScreen> createState() => _MatchScreenState();
@@ -76,13 +83,13 @@ class _MatchScreenState extends State<MatchScreen> {
       awayClub: _matchup?.away,
       userPosition: _matchup?.userPosition,
       random: Random(_progress.seed),
+      creditSeed: _progress.seed,
     );
     for (final name in _progress.moves) {
       if (sim.isOver) break;
       if (sim.isHalfTime) sim.startSecondHalf();
       final action = MatchAction.values.byName(name);
-      final before = sim.state;
-      _training.record(action, before, sim.play(action));
+      _training.play(sim, action);
     }
     if (_progress.secondHalf && sim.isHalfTime) sim.startSecondHalf();
     return sim;
@@ -133,13 +140,79 @@ class _MatchScreenState extends State<MatchScreen> {
   final _training = MatchTraining();
 
   /// Stat gains from this match, worked out at full time.
-  Growth get _growth => trainFromMatch(widget.player, _training.successes);
+  Growth get _growth => trainFromMatch(
+    widget.player,
+    _training.successes,
+    attempts: _training.attempts,
+    earned: _training.xp,
+  );
+
+  /// Whether any of the player's moves were picked for them.
+  late bool _simulated = widget.simulate;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.simulate) _simulateRest();
+  }
+
+  /// Plays out the rest of the match, half-time included, with
+  /// [autoMove] picking the player's moves.
+  void _simulateRest() {
+    if (_sim.isOver) return;
+    final rng = Random(_progress.seed ^ _progress.moves.length);
+    final moves = <String>[];
+    var secondHalf = _progress.secondHalf;
+    while (!_sim.isOver) {
+      if (_sim.isHalfTime) {
+        _sim.startSecondHalf();
+        secondHalf = true;
+      }
+      final action = autoMove(_sim, widget.player.attributes, rng);
+      _training.play(_sim, action);
+      moves.add(action.name);
+    }
+    _simulated = true;
+    var progress = _progress;
+    // Moves before the break, the break, then the rest, as if played.
+    for (final name in moves) {
+      progress = progress.withMove(name);
+    }
+    if (secondHalf && !progress.secondHalf) {
+      progress = progress.startSecondHalf();
+    }
+    _progress = progress;
+    _saveProgress();
+  }
+
+  Future<void> _confirmSimulate() async {
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Simulate the rest?'),
+        content: const Text(
+          'Your moves are picked for you, leaning on your best skills. '
+          'Moves that come off still earn XP.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep playing'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Simulate'),
+          ),
+        ],
+      ),
+    );
+    if (go == true && mounted) setState(_simulateRest);
+  }
 
   void _play(MatchAction action) {
     if (_sim.isOver || _sim.isHalfTime) return;
     setState(() {
-      final before = _sim.state;
-      _training.record(action, before, _sim.play(action));
+      _training.play(_sim, action);
       _progress = _progress.withMove(action.name);
     });
     _saveProgress();
@@ -157,13 +230,22 @@ class _MatchScreenState extends State<MatchScreen> {
   Future<void> _finish() async {
     setState(() => _saving = true);
     final before = widget.player;
+    final growth = _growth;
     // A league match records the result; a story match moves it on.
     var after = afterMatch(
       before.copyWith(clearMatch: true),
       widget.event,
       goalsFor: _sim.homeGoals,
       goalsAgainst: _sim.awayGoals,
-      growth: _growth,
+      growth: growth,
+      scorers: [
+        for (final g in _sim.goals)
+          RoundGoal(
+            mine: g.side == Side.home,
+            scorerId: g.scorer.id,
+            assistId: g.assist?.id,
+          ),
+      ],
     );
     // League matchdays move the calendar on, and paydays pay.
     if (widget.event.isSeason) {
@@ -175,6 +257,27 @@ class _MatchScreenState extends State<MatchScreen> {
       );
     }
     await const CareerStore().save(widget.slot, after);
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => MatchReportScreen(
+          player: before,
+          title: widget.event.match.title,
+          homeName: _matchup?.home.name ?? 'Your side',
+          awayName: widget.event.match.opponent,
+          homeGoals: _sim.homeGoals,
+          awayGoals: _sim.awayGoals,
+          goals: _sim.goals,
+          growth: growth,
+          moments: Map.of(_training.moments),
+          learned: [
+            for (final t in after.logicTalents)
+              if (!before.logicTalents.contains(t)) t,
+          ],
+          simulated: _simulated,
+        ),
+      ),
+    );
     // True tells the line-ups screen the match was played to the end.
     if (mounted) Navigator.of(context).pop(true);
   }
@@ -196,6 +299,13 @@ class _MatchScreenState extends State<MatchScreen> {
         awayGoals: _sim.awayGoals,
         minute: _sim.minute,
       ),
+      trailing: _sim.isOver
+          ? null
+          : CircleIconButton(
+              icon: Icons.fast_forward_rounded,
+              tooltip: 'Simulate the rest',
+              onPressed: _confirmSimulate,
+            ),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
         child: Column(
@@ -219,9 +329,11 @@ class _MatchScreenState extends State<MatchScreen> {
                 home: _sim.homeGoals,
                 away: _sim.awayGoals,
                 opponent: match.opponent,
-                note: _growth.isEmpty
-                    ? 'No stat gains this time. Keep at it.'
-                    : 'Training: ${_growth.describe()}',
+                note: [
+                  '+${_growth.totalXp} XP',
+                  if (!_growth.isEmpty) _growth.describe(),
+                  if (_simulated) 'simulated',
+                ].join(' · '),
               )
             else if (_sim.isHalfTime)
               _FullTime(
@@ -238,7 +350,7 @@ class _MatchScreenState extends State<MatchScreen> {
       ),
       bottom: _sim.isOver
           ? PillButton(
-              label: 'Continue',
+              label: 'Match report',
               trailingArrow: true,
               onPressed: _saving ? null : _finish,
             )

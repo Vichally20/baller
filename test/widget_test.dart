@@ -6,7 +6,9 @@ import 'package:baller/data/story_repository.dart';
 import 'package:baller/game/data/talents.dart';
 import 'package:baller/game/data/wheels.dart';
 import 'package:baller/game/models/attribute.dart';
+import 'package:baller/game/models/placement.dart';
 import 'package:baller/game/models/player.dart';
+import 'package:baller/game/models/season_progress.dart';
 import 'package:baller/game/models/player_identity.dart';
 import 'package:baller/game/world/league_countries.dart';
 import 'package:baller/data/world_repository.dart';
@@ -15,11 +17,15 @@ import 'package:baller/ui/screens/career_screen.dart';
 import 'package:baller/ui/screens/pathway_screen.dart';
 import 'package:baller/ui/screens/signing_screen.dart';
 import 'package:baller/ui/widgets/alabaster.dart';
+import 'package:baller/ui/widgets/league_picker.dart';
 import 'package:baller/ui/screens/club_screen.dart';
 import 'package:baller/ui/screens/leagues_screen.dart';
 import 'package:baller/game/match/match_engine.dart';
 import 'package:baller/ui/screens/lineup_screen.dart';
+import 'package:baller/ui/screens/league_stats_screen.dart';
+import 'package:baller/ui/screens/season_awards_screen.dart';
 import 'package:baller/ui/screens/season_screen.dart';
+import 'package:baller/ui/screens/match_report_screen.dart';
 import 'package:baller/ui/screens/match_screen.dart';
 import 'package:baller/ui/screens/identity_screen.dart';
 import 'package:baller/game/data/locations.dart';
@@ -405,11 +411,18 @@ void main() {
     await tester.tap(find.text('Start second half'));
     await tester.pumpAndSettle();
 
-    while (find.text('Continue').evaluate().isEmpty) {
+    while (find.text('Match report').evaluate().isEmpty) {
       await playMove();
       expect(++moves, lessThan(80));
     }
     expect(find.text('FULL TIME'), findsOneWidget);
+    await tester.tap(find.text('Match report'));
+    await tester.pumpAndSettle();
+
+    // The report: the score, your match and the XP each stat earned.
+    expect(find.byType(MatchReportScreen), findsOneWidget);
+    expect(find.text('YOUR MATCH'), findsOneWidget);
+    expect(find.text('XP EARNED'), findsOneWidget);
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
@@ -465,8 +478,12 @@ void main() {
     expect(find.byType(SeasonScreen), findsOneWidget);
     final results = find.text('YOUR RESULTS');
     await tester.scrollUntilVisible(results, 300);
-    // In the round's results and in yours.
-    expect(find.text('2–1'), findsNWidgets(2));
+    // In yours, and in the round's results (home side first, so 1–2 if
+    // you were away; other games may have the same score).
+    expect(
+      find.text('2–1').evaluate().length + find.text('1–2').evaluate().length,
+      greaterThanOrEqualTo(2),
+    );
 
     // A finished season offers the next one.
     var full = saved.season;
@@ -476,11 +493,109 @@ void main() {
     await _continueWith(tester, saved.withSeason(full));
     expect(find.text('SEASON 1 OVER'), findsOneWidget);
     expect(find.text('You finished 1st'), findsOneWidget);
+    await tester.tap(find.text('See the awards'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SeasonAwardsScreen), findsOneWidget);
+    expect(find.textContaining('CHAMPIONS'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('GOLDEN BOOT'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('Start season 2'));
     await tester.pumpAndSettle();
     expect(find.text('UP NEXT · SEASON 2'), findsOneWidget);
     saved = (await const CareerStore().loadSlots())[0]!;
     expect(saved.season.season, 2);
+  });
+
+  testWidgets('league stats and awards for a senior player', (tester) async {
+    _usePhone(tester);
+    final base = placedPlayer(offers: false);
+    final world = WorldRepository.forSeed(base.worldSeed);
+    final club = world.clubs.firstWhere((c) => c.division == 1);
+    var progress = SeasonProgress.first;
+    for (var r = 0; r < 12; r++) {
+      progress = progress.record(
+        3,
+        0,
+        scorers: [
+          for (var g = 0; g < 3; g++)
+            const RoundGoal(mine: true, scorerId: MatchSim.userId),
+        ],
+      );
+    }
+    final player = base
+        .withPlacement(
+          Placement(
+            kind: PathwayKind.seniorHome,
+            clubId: club.id,
+            signed: true,
+          ),
+        )
+        .withSeason(progress);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(),
+        home: LeagueStatsScreen(player: player, initialCountry: club.country),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // 36 goals in 12 games: you lead the Golden Boot race.
+    expect(find.text('GOLDEN BOOT RACE · ROUND 12 OF 38'), findsOneWidget);
+    expect(find.text('You'), findsOneWidget);
+    expect(find.text('36'), findsWidgets);
+    await tester.tap(find.text('Assists'));
+    await tester.pumpAndSettle();
+    expect(find.text('MOST ASSISTS · ROUND 12 OF 38'), findsOneWidget);
+    await tester.tap(find.text('Clean sheets'));
+    await tester.pumpAndSettle();
+    expect(find.text('GOLDEN GLOVE RACE · ROUND 12 OF 38'), findsOneWidget);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(),
+        home: SeasonAwardsScreen(player: player),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('if it ended today'), findsOneWidget);
+    expect(find.text('YOUR SEASON'), findsOneWidget);
+    expect(find.text('Golden Boot'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('YOUNG PLAYER OF THE SEASON'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+  });
+
+  testWidgets('simulating a match plays it all and shows the report', (
+    tester,
+  ) async {
+    _usePhone(tester);
+    final trialist = placedPlayer(offers: false);
+    await _continueWith(
+      tester,
+      trialist.withStatus(trialist.status.advance().advance()),
+    );
+    await tester.tap(find.text('Play match'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Simulate'));
+    await tester.pumpAndSettle();
+
+    // Straight to full time, with the moves saved as if played.
+    expect(find.text('FULL TIME'), findsOneWidget);
+    var saved = (await const CareerStore().loadSlots())[0]!;
+    expect(saved.match!.moves, isNotEmpty);
+    await tester.tap(find.text('Match report'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('simulated'), findsOneWidget);
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    saved = (await const CareerStore().loadSlots())[0]!;
+    expect(saved.match, isNull);
+    expect(saved.status.eventIndex, 3);
   });
 
   testWidgets('leaving a match half-way and coming back resumes it', (
@@ -529,18 +644,20 @@ void main() {
     await _continueWith(tester, saved);
     await tester.tap(find.text('Resume match'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Resume match'));
+    await tester.tap(find.text('Resume'));
     await tester.pumpAndSettle();
     expect(scoreLabel(), before);
 
     // Finishing the match clears it.
-    while (find.text('Continue').evaluate().isEmpty) {
+    while (find.text('Match report').evaluate().isEmpty) {
       if (find.text('Start second half').evaluate().isNotEmpty) {
         await tester.tap(find.text('Start second half'));
         await tester.pumpAndSettle();
       }
       await playMove();
     }
+    await tester.tap(find.text('Match report'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
     saved = (await const CareerStore().loadSlots())[0]!;
@@ -678,11 +795,12 @@ void main() {
     await tester.tap(leagues);
     await tester.pumpAndSettle();
     expect(find.byType(LeaguesScreen), findsOneWidget);
-    expect(find.text('Division 1'), findsOneWidget);
+    expect(find.byType(DivisionTabs), findsOneWidget);
 
-    // Switch to Spain, Division 2, and open the top club.
+    // Switch to Spain's second division, and open the top club.
     await tester.tap(find.text('Spain'));
-    await tester.tap(find.text('Division 2'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Segunda'));
     await tester.pumpAndSettle();
     final screen = tester.widget<LeaguesScreen>(find.byType(LeaguesScreen));
     final spain = screen.world.leagues.firstWhere(
@@ -698,7 +816,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ClubScreen), findsOneWidget);
-    expect(find.text('Spain · Division 2'), findsOneWidget);
+    expect(find.text('Spain · Segunda División'), findsOneWidget);
     expect(find.text('MANAGER'), findsOneWidget);
     final managerCard = find.ancestor(
       of: find.text('MANAGER'),

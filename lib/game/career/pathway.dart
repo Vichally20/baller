@@ -13,6 +13,17 @@ import 'package:baller/game/world/world_models.dart';
 /// Players younger than this go to academies; older ones get senior offers.
 const int academyAgeLimit = 17;
 
+/// The oldest a player can be and still play youth (U18) football.
+const int youthMaxAge = 18;
+
+/// Whether a signed player plays youth football rather than for the
+/// club's senior side: academy and trial signings do while they're
+/// [youthMaxAge] or younger; senior contracts never do.
+bool playsYouthFootball(Player player, Placement placement) =>
+    placement.kind != PathwayKind.seniorHome &&
+    placement.kind != PathwayKind.seniorAbroad &&
+    player.attributes.age <= youthMaxAge;
+
 /// Where African players' offers and academy trials come from.
 const europeanLeagues = [
   LeagueCountry.england,

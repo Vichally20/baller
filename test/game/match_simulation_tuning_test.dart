@@ -197,29 +197,32 @@ void main() {
       },
     );
 
-    test('buildHighlightedSpans highlights home players in green and away in red', () {
-      final homeNames = {'Isagi', 'Bachira'};
-      final awayNames = {'Kaiser', 'Ness'};
-      final spans = buildHighlightedSpans(
-        text: 'Kaiser slips a pass to Ness, but Isagi intercepts!',
-        homeNames: homeNames,
-        awayNames: awayNames,
-        baseStyle: const TextStyle(color: Colors.black),
-      );
+    test(
+      'buildHighlightedSpans highlights home players in green and away in red',
+      () {
+        final homeNames = {'Isagi', 'Bachira'};
+        final awayNames = {'Kaiser', 'Ness'};
+        final spans = buildHighlightedSpans(
+          text: 'Kaiser slips a pass to Ness, but Isagi intercepts!',
+          homeNames: homeNames,
+          awayNames: awayNames,
+          baseStyle: const TextStyle(color: Colors.black),
+        );
 
-      final textSpans = spans.whereType<TextSpan>().toList();
-      final kaiserSpan = textSpans.firstWhere((s) => s.text == 'Kaiser');
-      final nessSpan = textSpans.firstWhere((s) => s.text == 'Ness');
-      final isagiSpan = textSpans.firstWhere((s) => s.text == 'Isagi');
+        final textSpans = spans.whereType<TextSpan>().toList();
+        final kaiserSpan = textSpans.firstWhere((s) => s.text == 'Kaiser');
+        final nessSpan = textSpans.firstWhere((s) => s.text == 'Ness');
+        final isagiSpan = textSpans.firstWhere((s) => s.text == 'Isagi');
 
-      // Opponents in red
-      expect(kaiserSpan.style?.color, const Color(0xFFDC2626));
-      expect(kaiserSpan.style?.backgroundColor, const Color(0x22DC2626));
-      expect(nessSpan.style?.color, const Color(0xFFDC2626));
+        // Opponents in red
+        expect(kaiserSpan.style?.color, const Color(0xFFDC2626));
+        expect(kaiserSpan.style?.backgroundColor, const Color(0x22DC2626));
+        expect(nessSpan.style?.color, const Color(0xFFDC2626));
 
-      // Mine in green
-      expect(isagiSpan.style?.color, const Color(0xFF15803D));
-      expect(isagiSpan.style?.backgroundColor, const Color(0x2215803D));
-    });
+        // Mine in green
+        expect(isagiSpan.style?.color, const Color(0xFF15803D));
+        expect(isagiSpan.style?.backgroundColor, const Color(0x2215803D));
+      },
+    );
   });
 }

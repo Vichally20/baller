@@ -77,6 +77,13 @@ Player placedPlayer({
   );
 }
 
+/// [placedPlayer] for trials, made 17 so a signing plays youth football
+/// against sides generated at their level.
+Player youthTrialist({bool signed = false}) {
+  final p = placedPlayer(offers: false, signed: signed);
+  return p.copyWith(attributes: p.attributes.copyWith(age: 17));
+}
+
 /// The first test player whose pathway is offers (or trials), not yet
 /// placed anywhere.
 Player pathwayPlayer({required bool offers, Location? location}) {

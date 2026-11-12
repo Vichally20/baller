@@ -1,4 +1,7 @@
 import 'package:baller/game/career/season.dart';
+import 'package:baller/game/models/player.dart';
+import 'package:baller/ui/screens/league_stats_screen.dart';
+import 'package:baller/ui/screens/season_awards_screen.dart';
 import 'package:baller/ui/theme/app_theme.dart';
 import 'package:baller/ui/widgets/alabaster.dart';
 import 'package:flutter/material.dart';
@@ -16,9 +19,12 @@ String ordinal(int n) {
 
 /// The league table for the player's season, and their results.
 class SeasonScreen extends StatelessWidget {
-  const SeasonScreen({super.key, required this.season});
+  const SeasonScreen({super.key, required this.season, this.player});
 
   final Season season;
+
+  /// For the links to the league's stats and awards.
+  final Player? player;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +62,36 @@ class SeasonScreen extends StatelessWidget {
               ],
             ),
           ),
+          if (player case final player?) ...[
+            const SizedBox(height: 14),
+            _LinkCard(
+              icon: Icons.sports_soccer,
+              title: 'Top scorers & assists',
+              text: 'Every senior league, this season',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => LeagueStatsScreen(
+                    player: player,
+                    initialCountry: season.club.country,
+                    initialDivision: season.club.division,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _LinkCard(
+              icon: Icons.emoji_events_outlined,
+              title: 'Season awards',
+              text: season.isOver
+                  ? 'Champions, Golden Boot, Golden Glove…'
+                  : 'The race so far',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => SeasonAwardsScreen(player: player),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
           SoftCard(
             padding: const EdgeInsets.fromLTRB(0, 4, 0, 12),
@@ -105,6 +141,43 @@ class SeasonScreen extends StatelessWidget {
 }
 
 enum _Zone { up, down }
+
+/// A white card that opens another screen.
+class _LinkCard extends StatelessWidget {
+  const _LinkCard({
+    required this.icon,
+    required this.title,
+    required this.text,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String text;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => SoftCard(
+    padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+    onTap: onTap,
+    child: Row(
+      children: [
+        IconDisc(icon: icon),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: AppText.manrope(16, weight: 600)),
+              Text(text, style: AppText.inter(13, color: AppColors.muted)),
+            ],
+          ),
+        ),
+        const Icon(Icons.chevron_right, color: AppColors.muted),
+      ],
+    ),
+  );
+}
 
 /// Every game in a round: the scores of the ones played, the fixtures of
 /// the ones to come. Opens on the latest round played.
